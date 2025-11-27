@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, X, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,24 +12,104 @@ const ChatBot = () => {
     { text: "Hello! I'm your Safario AI assistant. How can I help you stay safe today?", isUser: false },
   ]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-    setMessages([...messages, { text: input, isUser: true }]);
-    
-    // Simulate AI response
-    setTimeout(() => {
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput("");
+    setMessages((prev) => [...prev, { text: userMessage, isUser: true }]);
+    setIsLoading(true);
+
+    try {
+      const conversationHistory = messages
+        .slice(-10) // Keep last 10 messages for context
+        .map((msg) => ({
+          role: msg.isUser ? "user" : "assistant",
+          content: msg.text,
+        }));
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            messages: [
+              ...conversationHistory,
+              { role: "user", content: userMessage },
+            ],
+          }),
+        }
+      );
+
+      if (!response.ok || !response.body) {
+        throw new Error("Failed to get AI response");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantMessage = "";
+      let messageIndex = messages.length + 1;
+
+      // Add placeholder for assistant message
+      setMessages((prev) => [...prev, { text: "", isUser: false }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") continue;
+
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                assistantMessage += content;
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  updated[messageIndex] = { text: assistantMessage, isUser: false };
+                  return updated;
+                });
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("Chat error:", error);
+      toast.error("Failed to get AI response. Please try again.");
       setMessages((prev) => [
         ...prev,
         {
-          text: "I'm here to help! For full AI capabilities, we'll integrate with OpenAI. For now, I can help you navigate the app and understand safety features.",
+          text: "Sorry, I'm having trouble connecting right now. Please try again.",
           isUser: false,
         },
       ]);
-    }, 1000);
-
-    setInput("");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,10 +149,18 @@ const ChatBot = () => {
                       : "bg-accent text-accent-foreground"
                   }`}
                 >
-                  <p className="text-sm">{message.text}</p>
+                  <p className="text-sm whitespace-pre-wrap">{message.text || "..."}</p>
                 </div>
               </div>
             ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-accent text-accent-foreground p-3 rounded-lg">
+                  <p className="text-sm">Thinking...</p>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
           <div className="p-4 border-t border-border">
@@ -79,9 +169,10 @@ const ChatBot = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
-                onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSend()}
+                disabled={isLoading}
               />
-              <Button size="icon" onClick={handleSend}>
+              <Button size="icon" onClick={handleSend} disabled={isLoading}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>
