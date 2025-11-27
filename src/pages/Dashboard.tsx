@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { AlertTriangle, Cloud, MapPin, MessageSquare, FileText, Shield } from "lucide-react";
+import { AlertTriangle, FileText, Shield, CreditCard, MapPin } from "lucide-react";
 import SafetyScore from "@/components/dashboard/SafetyScore";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
 import AlertButton from "@/components/dashboard/AlertButton";
 import ChatBot from "@/components/dashboard/ChatBot";
+import DigitalIDCard from "@/components/dashboard/DigitalIDCard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -79,6 +80,10 @@ const Dashboard = () => {
           <div className="flex justify-between items-center h-16">
             <h1 className="text-2xl font-bold text-foreground">Safario</h1>
             <div className="flex gap-4">
+              <Button variant="outline" onClick={() => navigate("/id-card")}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                View ID
+              </Button>
               <Button variant="outline" onClick={() => navigate("/lost-found")}>
                 <FileText className="mr-2 h-4 w-4" />
                 Lost & Found
