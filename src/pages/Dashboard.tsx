@@ -10,6 +10,7 @@ import WeatherWidget from "@/components/dashboard/WeatherWidget";
 import AlertButton from "@/components/dashboard/AlertButton";
 import ChatBot from "@/components/dashboard/ChatBot";
 import DigitalIDCard from "@/components/dashboard/DigitalIDCard";
+import MapComponent from "@/components/dashboard/MapComponent";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -166,9 +167,7 @@ const Dashboard = () => {
 
         <Card className="p-6 bg-card/50 backdrop-blur-sm">
           <h3 className="text-xl font-semibold mb-4">Interactive Safety Map</h3>
-          <div className="bg-accent/10 rounded-lg h-96 flex items-center justify-center">
-            <p className="text-muted-foreground">Map integration with geofencing zones</p>
-          </div>
+          <MapComponent location={location} />
         </Card>
       </main>
 

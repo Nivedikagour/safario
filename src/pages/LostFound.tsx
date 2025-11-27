@@ -19,6 +19,8 @@ const LostFound = () => {
     description: "",
   });
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -57,6 +59,28 @@ const LostFound = () => {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -64,11 +88,30 @@ const LostFound = () => {
     setLoading(true);
 
     try {
+      let imageUrl = null;
+
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const { error: uploadError, data } = await supabase.storage
+          .from('lost-items')
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('lost-items')
+          .getPublicUrl(fileName);
+        
+        imageUrl = publicUrl;
+      }
+
       const { error } = await supabase.from("lost_items").insert([
         {
           user_id: user.id,
           item_name: formData.item_name,
           description: formData.description,
+          image_url: imageUrl,
           location_lat: location?.lat,
           location_lng: location?.lng,
           status: "lost",
@@ -79,6 +122,8 @@ const LostFound = () => {
 
       toast.success("Lost item report submitted successfully!");
       setFormData({ item_name: "", description: "" });
+      setImageFile(null);
+      setImagePreview(null);
       fetchLostItems();
     } catch (error: any) {
       toast.error(error.message || "Failed to submit report");
@@ -130,6 +175,26 @@ const LostFound = () => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="image">Item Photo (Optional)</Label>
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="cursor-pointer"
+                />
+                {imagePreview && (
+                  <div className="mt-2">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-48 object-cover rounded-lg border border-border"
+                    />
+                  </div>
+                )}
+              </div>
+
               {location && (
                 <div className="text-sm text-muted-foreground">
                   Location captured: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
@@ -152,17 +217,28 @@ const LostFound = () => {
               {items.length > 0 ? (
                 items.map((item) => (
                   <Card key={item.id} className="p-4 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-shadow">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg">{item.item_name}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Reported: {new Date(item.created_at).toLocaleDateString()}
-                        </p>
+                    <div className="flex gap-4">
+                      {item.image_url && (
+                        <img
+                          src={item.image_url}
+                          alt={item.item_name}
+                          className="w-24 h-24 object-cover rounded-lg border border-border"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold text-lg">{item.item_name}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Reported: {new Date(item.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <span className="px-3 py-1 bg-destructive/10 text-destructive text-xs rounded-full">
+                            {item.status}
+                          </span>
+                        </div>
                       </div>
-                      <span className="px-3 py-1 bg-destructive/10 text-destructive text-xs rounded-full">
-                        {item.status}
-                      </span>
                     </div>
                   </Card>
                 ))
