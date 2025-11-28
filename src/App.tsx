@@ -9,6 +9,7 @@ import IDGeneration from "./pages/IDGeneration";
 import Dashboard from "./pages/Dashboard";
 import LostFound from "./pages/LostFound";
 import IDCard from "./pages/IDCard";
+import AuthorityPortal from "./pages/AuthorityPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/lost-found" element={<LostFound />} />
           <Route path="/id-card" element={<IDCard />} />
+          <Route path="/authority" element={<AuthorityPortal />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
