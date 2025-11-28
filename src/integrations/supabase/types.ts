@@ -22,6 +22,9 @@ export type Database = {
           location_lat: number | null
           location_lng: number | null
           resolved_at: string | null
+          responded_at: string | null
+          responder_id: string | null
+          response_notes: string | null
           status: string | null
           user_id: string | null
         }
@@ -32,6 +35,9 @@ export type Database = {
           location_lat?: number | null
           location_lng?: number | null
           resolved_at?: string | null
+          responded_at?: string | null
+          responder_id?: string | null
+          response_notes?: string | null
           status?: string | null
           user_id?: string | null
         }
@@ -42,6 +48,9 @@ export type Database = {
           location_lat?: number | null
           location_lng?: number | null
           resolved_at?: string | null
+          responded_at?: string | null
+          responder_id?: string | null
+          response_notes?: string | null
           status?: string | null
           user_id?: string | null
         }
@@ -96,6 +105,8 @@ export type Database = {
           gender: string | null
           id: string
           passport_number: string | null
+          phone_number: string | null
+          phone_verified: boolean | null
           preferred_language: string | null
           profile_image_url: string | null
           updated_at: string | null
@@ -109,6 +120,8 @@ export type Database = {
           gender?: string | null
           id: string
           passport_number?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
           preferred_language?: string | null
           profile_image_url?: string | null
           updated_at?: string | null
@@ -122,6 +135,8 @@ export type Database = {
           gender?: string | null
           id?: string
           passport_number?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
           preferred_language?: string | null
           profile_image_url?: string | null
           updated_at?: string | null
@@ -155,15 +170,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "user" | "authority" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -290,6 +332,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["user", "authority", "admin"],
+    },
   },
 } as const
