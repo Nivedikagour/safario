@@ -249,34 +249,92 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Creating account..." : "Sign Up"}
-                </Button>
-              </form>
+              <Tabs defaultValue="email" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="email">Email</TabsTrigger>
+                  <TabsTrigger value="phone">Phone</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="email">
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? "Creating account..." : "Sign Up"}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="phone">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-phone">Phone Number</Label>
+                      <Input
+                        id="signup-phone"
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="+1234567890"
+                        disabled={otpSent}
+                      />
+                    </div>
+                    
+                    {!otpSent ? (
+                      <Button onClick={handleSendOtp} className="w-full" disabled={loading}>
+                        {loading ? "Sending..." : "Send OTP"}
+                      </Button>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-otp">Enter OTP</Label>
+                          <Input
+                            id="signup-otp"
+                            type="text"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            placeholder="123456"
+                            maxLength={6}
+                          />
+                        </div>
+                        <Button onClick={handleVerifyPhone} className="w-full" disabled={loading}>
+                          {loading ? "Verifying..." : "Verify & Continue"}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setOtpSent(false);
+                            setOtp("");
+                          }} 
+                          className="w-full"
+                        >
+                          Resend OTP
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           </Tabs>
         </div>

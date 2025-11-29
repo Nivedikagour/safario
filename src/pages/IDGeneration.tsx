@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, User } from "lucide-react";
+import { Upload, User, ArrowLeft } from "lucide-react";
 import idGenerationBg from "@/assets/id-generation-bg.jpg";
 
 const languages = [
@@ -138,6 +138,14 @@ const IDGeneration = () => {
 
       <div className="relative z-10 w-full max-w-2xl">
         <div className="bg-card border border-border rounded-lg shadow-2xl p-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/auth")}
+            className="mb-4"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Sign In
+          </Button>
           <h1 className="text-3xl font-bold text-foreground mb-2">Generate Your Digital ID</h1>
           <p className="text-muted-foreground mb-8">Complete your profile to access Safario</p>
 
