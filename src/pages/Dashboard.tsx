@@ -10,7 +10,6 @@ import WeatherWidget from "@/components/dashboard/WeatherWidget";
 import AlertButton from "@/components/dashboard/AlertButton";
 import ChatBot from "@/components/dashboard/ChatBot";
 import DigitalIDCard from "@/components/dashboard/DigitalIDCard";
-import MapComponent from "@/components/dashboard/MapComponent";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -169,9 +168,77 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        <Card className="p-6 bg-card/50 backdrop-blur-sm mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-semibold">Interactive Safety Map</h3>
+            <Button onClick={() => navigate("/map")} className="hover:bg-primary/90">
+              <MapPin className="mr-2 h-4 w-4" />
+              Open Full Map
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            View your location with geofencing and danger zones on the full interactive map.
+          </p>
+        </Card>
+
         <Card className="p-6 bg-card/50 backdrop-blur-sm">
-          <h3 className="text-xl font-semibold mb-4">Interactive Safety Map</h3>
-          <MapComponent location={location} />
+          <h3 className="text-xl font-semibold mb-4">Famous Places to Visit</h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            Discover must-visit destinations in {location ? "your area" : "popular cities"}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+              <img 
+                src="https://images.unsplash.com/photo-1570168007204-dfb528c6958f"
+                alt="Gateway of India, Mumbai" 
+                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                <h4 className="text-lg font-bold text-foreground mb-1">Gateway of India</h4>
+                <p className="text-xs text-muted-foreground">Iconic Mumbai landmark</p>
+              </div>
+            </div>
+
+            <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+              <img 
+                src="https://images.unsplash.com/photo-1587474260584-136574528ed5"
+                alt="Marine Drive, Mumbai" 
+                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                <h4 className="text-lg font-bold text-foreground mb-1">Marine Drive</h4>
+                <p className="text-xs text-muted-foreground">Queen's Necklace promenade</p>
+              </div>
+            </div>
+
+            <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+              <img 
+                src="https://images.unsplash.com/photo-1595658658481-d53d3f999875"
+                alt="Elephanta Caves, Mumbai" 
+                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                <h4 className="text-lg font-bold text-foreground mb-1">Elephanta Caves</h4>
+                <p className="text-xs text-muted-foreground">Ancient rock-cut temples</p>
+              </div>
+            </div>
+
+            <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+              <img 
+                src="https://images.unsplash.com/photo-1566552881560-0be862a7c445"
+                alt="Taj Mahal Palace, Mumbai" 
+                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                <h4 className="text-lg font-bold text-foreground mb-1">Taj Mahal Palace</h4>
+                <p className="text-xs text-muted-foreground">Luxury heritage hotel</p>
+              </div>
+            </div>
+          </div>
         </Card>
       </main>
 

@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import IDGeneration from "./pages/IDGeneration";
 import Dashboard from "./pages/Dashboard";
+import Map from "./pages/Map";
 import LostFound from "./pages/LostFound";
 import IDCard from "./pages/IDCard";
 import AuthorityPortal from "./pages/AuthorityPortal";
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/id-generation" element={<IDGeneration />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/map" element={<Map />} />
           <Route path="/lost-found" element={<LostFound />} />
           <Route path="/id-card" element={<IDCard />} />
           <Route path="/authority" element={<AuthorityPortal />} />

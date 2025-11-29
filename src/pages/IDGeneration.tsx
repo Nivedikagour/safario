@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Upload, User, ArrowLeft } from "lucide-react";
-import idGenerationBg from "@/assets/id-generation-bg.jpg";
+import idGenerationBg from "@/assets/id-generation-bg-new.jpg";
 
 const languages = [
   "English", "Hindi", "Marathi", "French", "Spanish", "Gujarati", "Tamil", "Telugu", "Bengali"
