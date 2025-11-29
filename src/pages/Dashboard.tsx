@@ -16,6 +16,10 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [famousPlaces, setFamousPlaces] = useState<{
+    city: string;
+    places: Array<{ name: string; description: string; imageUrl: string }>;
+  } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -64,6 +68,29 @@ const Dashboard = () => {
           toast.error("Please enable location access for full safety features");
         }
       );
+    }
+  };
+
+  useEffect(() => {
+    if (location) {
+      fetchFamousPlaces();
+    }
+  }, [location]);
+
+  const fetchFamousPlaces = async () => {
+    if (!location) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('location-places', {
+        body: { lat: location.lat, lng: location.lng }
+      });
+
+      if (error) throw error;
+      if (data?.data) {
+        setFamousPlaces(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching places:', error);
     }
   };
 
@@ -182,63 +209,36 @@ const Dashboard = () => {
         </Card>
 
         <Card className="p-6 bg-card/50 backdrop-blur-sm">
-          <h3 className="text-xl font-semibold mb-4">Famous Places to Visit</h3>
+          <h3 className="text-xl font-semibold mb-4">
+            Famous Places in {famousPlaces?.city || "Your Area"}
+          </h3>
           <p className="text-sm text-muted-foreground mb-6">
-            Discover must-visit destinations in {location ? "your area" : "popular cities"}
+            {famousPlaces ? `Discover must-visit destinations in ${famousPlaces.city}` : "Loading nearby attractions..."}
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
-              <img 
-                src="https://images.unsplash.com/photo-1570168007204-dfb528c6958f"
-                alt="Gateway of India, Mumbai" 
-                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                <h4 className="text-lg font-bold text-foreground mb-1">Gateway of India</h4>
-                <p className="text-xs text-muted-foreground">Iconic Mumbai landmark</p>
-              </div>
+          {famousPlaces ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {famousPlaces.places.map((place, index) => (
+                <div key={index} className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+                  <img 
+                    src={place.imageUrl}
+                    alt={place.name}
+                    className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    <h4 className="text-lg font-bold text-foreground mb-1">{place.name}</h4>
+                    <p className="text-xs text-muted-foreground">{place.description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
-              <img 
-                src="https://images.unsplash.com/photo-1587474260584-136574528ed5"
-                alt="Marine Drive, Mumbai" 
-                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                <h4 className="text-lg font-bold text-foreground mb-1">Marine Drive</h4>
-                <p className="text-xs text-muted-foreground">Queen's Necklace promenade</p>
-              </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-48 rounded-lg border border-border bg-accent/10 animate-pulse" />
+              ))}
             </div>
-
-            <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
-              <img 
-                src="https://images.unsplash.com/photo-1595658658481-d53d3f999875"
-                alt="Elephanta Caves, Mumbai" 
-                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                <h4 className="text-lg font-bold text-foreground mb-1">Elephanta Caves</h4>
-                <p className="text-xs text-muted-foreground">Ancient rock-cut temples</p>
-              </div>
-            </div>
-
-            <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
-              <img 
-                src="https://images.unsplash.com/photo-1566552881560-0be862a7c445"
-                alt="Taj Mahal Palace, Mumbai" 
-                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                <h4 className="text-lg font-bold text-foreground mb-1">Taj Mahal Palace</h4>
-                <p className="text-xs text-muted-foreground">Luxury heritage hotel</p>
-              </div>
-            </div>
-          </div>
+          )}
         </Card>
       </main>
 
