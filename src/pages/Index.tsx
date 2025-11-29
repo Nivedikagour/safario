@@ -1,7 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Shield, MapPin, AlertTriangle, FileText } from "lucide-react";
 import heroBackground from "@/assets/hero-background.jpg";
+import thailandBeach from "@/assets/thailand-beach.jpg";
+import switzerlandAlps from "@/assets/switzerland-alps.jpg";
+import santoriniGreece from "@/assets/santorini-greece.jpg";
+import baliTemple from "@/assets/bali-temple.jpg";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -36,28 +39,56 @@ const Index = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-16">
-              <div className="bg-card/80 backdrop-blur-sm p-6 rounded-lg border border-border">
-                <Shield className="h-12 w-12 text-primary mb-4 mx-auto" />
-                <h3 className="text-lg font-semibold mb-2">Safety Score</h3>
-                <p className="text-sm text-muted-foreground">Real-time area safety assessment based on crime and weather data</p>
+              <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+                <img 
+                  src={thailandBeach} 
+                  alt="Beautiful beaches of Thailand" 
+                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <h3 className="text-xl font-bold text-foreground mb-2">Thailand</h3>
+                  <p className="text-sm text-muted-foreground">Tropical paradise with pristine beaches</p>
+                </div>
               </div>
               
-              <div className="bg-card/80 backdrop-blur-sm p-6 rounded-lg border border-border">
-                <MapPin className="h-12 w-12 text-primary mb-4 mx-auto" />
-                <h3 className="text-lg font-semibold mb-2">Location Tracking</h3>
-                <p className="text-sm text-muted-foreground">Automatic geofencing and danger zone detection</p>
+              <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+                <img 
+                  src={switzerlandAlps} 
+                  alt="Swiss Alps mountains" 
+                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <h3 className="text-xl font-bold text-foreground mb-2">Switzerland</h3>
+                  <p className="text-sm text-muted-foreground">Majestic Alps and alpine beauty</p>
+                </div>
               </div>
               
-              <div className="bg-card/80 backdrop-blur-sm p-6 rounded-lg border border-border">
-                <AlertTriangle className="h-12 w-12 text-primary mb-4 mx-auto" />
-                <h3 className="text-lg font-semibold mb-2">Emergency Alerts</h3>
-                <p className="text-sm text-muted-foreground">Instant alerts to authorities with your location</p>
+              <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+                <img 
+                  src={santoriniGreece} 
+                  alt="Santorini Greece sunset" 
+                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <h3 className="text-xl font-bold text-foreground mb-2">Santorini</h3>
+                  <p className="text-sm text-muted-foreground">Iconic white buildings and blue seas</p>
+                </div>
               </div>
               
-              <div className="bg-card/80 backdrop-blur-sm p-6 rounded-lg border border-border">
-                <FileText className="h-12 w-12 text-primary mb-4 mx-auto" />
-                <h3 className="text-lg font-semibold mb-2">Lost & Found</h3>
-                <p className="text-sm text-muted-foreground">Report and track lost items with digital e-FIR</p>
+              <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+                <img 
+                  src={baliTemple} 
+                  alt="Bali temple and nature" 
+                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <h3 className="text-xl font-bold text-foreground mb-2">Bali</h3>
+                  <p className="text-sm text-muted-foreground">Mystical temples and lush jungles</p>
+                </div>
               </div>
             </div>
           </div>
