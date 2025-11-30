@@ -1,0 +1,247 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Shield, ArrowLeft, Users, UserCheck } from "lucide-react";
+
+interface UserRole {
+  id: string;
+  user_id: string;
+  role: "user" | "authority" | "admin";
+  profiles: {
+    full_name: string;
+    phone_number: string;
+  };
+}
+
+const AdminPanel = () => {
+  const navigate = useNavigate();
+  const [users, setUsers] = useState<UserRole[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasAdmin, setHasAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAccess();
+  }, []);
+
+  const checkAccess = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast.error("Please sign in to access this page");
+      navigate("/auth");
+      return;
+    }
+
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id);
+
+    const isAdmin = roles?.some(r => r.role === 'admin');
+    
+    if (!isAdmin) {
+      toast.error("Access denied: Admin privileges required");
+      navigate("/dashboard");
+      return;
+    }
+
+    setHasAdmin(true);
+    fetchUsers();
+  };
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select(`
+          id,
+          user_id,
+          role
+        `)
+        .order("role", { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(u => u.user_id))];
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone_number")
+          .in("id", userIds);
+
+        const profileMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+        
+        const enrichedUsers = data.map(user => ({
+          ...user,
+          profiles: profileMap.get(user.user_id) || { full_name: "Unknown", phone_number: "" }
+        }));
+
+        setUsers(enrichedUsers as UserRole[]);
+      }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from("user_roles")
+        .update({ role: newRole })
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      toast.success(`Role updated to ${newRole}`);
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "bg-destructive text-destructive-foreground";
+      case "authority":
+        return "bg-primary text-primary-foreground";
+      default:
+        return "bg-secondary text-secondary-foreground";
+    }
+  };
+
+  if (!hasAdmin) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background">
+      <nav className="border-b border-border bg-card/50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Button>
+            <div className="flex items-center gap-2">
+              <Shield className="h-6 w-6 text-primary" />
+              <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
+            </div>
+            <div className="w-32" />
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold mb-2">User Role Management</h2>
+          <p className="text-muted-foreground">Manage user roles and permissions</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card className="p-6 bg-card/50 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{users.filter(u => u.role === 'user').length}</p>
+                <p className="text-sm text-muted-foreground">Regular Users</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-card/50 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-500/10 rounded-lg">
+                <Shield className="h-6 w-6 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{users.filter(u => u.role === 'authority').length}</p>
+                <p className="text-sm text-muted-foreground">Authorities</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-card/50 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-destructive/10 rounded-lg">
+                <UserCheck className="h-6 w-6 text-destructive" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{users.filter(u => u.role === 'admin').length}</p>
+                <p className="text-sm text-muted-foreground">Admins</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-1 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-6 animate-pulse">
+                <div className="h-6 bg-accent/20 rounded w-1/3 mb-4" />
+                <div className="h-4 bg-accent/20 rounded w-1/2" />
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {users.map((user) => (
+              <Card key={user.id} className="p-6 bg-card/50 backdrop-blur-sm hover:bg-card/70 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-primary/10 rounded-full">
+                      <Users className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-semibold">
+                          {user.profiles?.full_name || "Unknown User"}
+                        </h3>
+                        <Badge className={getRoleBadgeColor(user.role)}>
+                          {user.role}
+                        </Badge>
+                      </div>
+                      {user.profiles?.phone_number && (
+                        <p className="text-sm text-muted-foreground">
+                          {user.profiles.phone_number}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="w-48">
+                    <Select
+                      value={user.role}
+                      onValueChange={(value) => handleRoleChange(user.user_id, value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="authority">Authority</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default AdminPanel;
