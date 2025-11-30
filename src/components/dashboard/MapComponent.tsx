@@ -40,65 +40,115 @@ const MapComponent = ({ location }: MapComponentProps) => {
       .setLngLat([location.lng, location.lat])
       .addTo(map.current);
 
-    // Add geofencing zones (example danger zones)
+    // Define danger zones with actual coordinates
+    const dangerZones = [
+      { lng: location.lng + 0.01, lat: location.lat + 0.01, name: 'High Crime Area', radius: 500 },
+      { lng: location.lng - 0.015, lat: location.lat + 0.005, name: 'Unsafe Zone', radius: 400 },
+    ];
+
+    const safeZones = [
+      { lng: location.lng - 0.01, lat: location.lat - 0.01, name: 'Tourist Safe Zone', radius: 600 },
+    ];
+
+    // Function to check if user is in danger zone
+    const checkGeofencing = (userLng: number, userLat: number) => {
+      dangerZones.forEach(zone => {
+        const distance = Math.sqrt(
+          Math.pow((userLng - zone.lng) * 111000, 2) + 
+          Math.pow((userLat - zone.lat) * 111000, 2)
+        );
+        
+        if (distance <= zone.radius) {
+          // User entered danger zone - show alert
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('⚠️ Danger Zone Alert', {
+              body: `You are entering ${zone.name}. Please be cautious!`,
+              icon: '/favicon.ico',
+            });
+          }
+        }
+      });
+    };
+
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    // Add geofencing zones
     map.current.on('load', () => {
       if (!map.current) return;
 
-      // Example: Add a circular danger zone
-      map.current.addSource('danger-zone', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {
-            name: 'High Crime Area',
+      // Add danger zones
+      dangerZones.forEach((zone, index) => {
+        map.current!.addSource(`danger-zone-${index}`, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: { name: zone.name },
+            geometry: {
+              type: 'Point',
+              coordinates: [zone.lng, zone.lat],
+            },
           },
-          geometry: {
-            type: 'Point',
-            coordinates: [location.lng + 0.01, location.lat + 0.01],
+        });
+
+        map.current!.addLayer({
+          id: `danger-zone-circle-${index}`,
+          type: 'circle',
+          source: `danger-zone-${index}`,
+          paint: {
+            'circle-radius': {
+              stops: [
+                [0, 0],
+                [20, zone.radius / 10],
+              ],
+              base: 2,
+            },
+            'circle-color': '#ef4444',
+            'circle-opacity': 0.3,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ef4444',
           },
-        },
+        });
       });
 
-      map.current.addLayer({
-        id: 'danger-zone-circle',
-        type: 'circle',
-        source: 'danger-zone',
-        paint: {
-          'circle-radius': 50,
-          'circle-color': '#ef4444',
-          'circle-opacity': 0.3,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ef4444',
-        },
+      // Add safe zones
+      safeZones.forEach((zone, index) => {
+        map.current!.addSource(`safe-zone-${index}`, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: { name: zone.name },
+            geometry: {
+              type: 'Point',
+              coordinates: [zone.lng, zone.lat],
+            },
+          },
+        });
+
+        map.current!.addLayer({
+          id: `safe-zone-circle-${index}`,
+          type: 'circle',
+          source: `safe-zone-${index}`,
+          paint: {
+            'circle-radius': {
+              stops: [
+                [0, 0],
+                [20, zone.radius / 10],
+              ],
+              base: 2,
+            },
+            'circle-color': '#10b981',
+            'circle-opacity': 0.3,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#10b981',
+          },
+        });
       });
 
-      // Add safe zone
-      map.current.addSource('safe-zone', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {
-            name: 'Tourist Safe Zone',
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: [location.lng - 0.01, location.lat - 0.01],
-          },
-        },
-      });
-
-      map.current.addLayer({
-        id: 'safe-zone-circle',
-        type: 'circle',
-        source: 'safe-zone',
-        paint: {
-          'circle-radius': 50,
-          'circle-color': '#10b981',
-          'circle-opacity': 0.3,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#10b981',
-        },
-      });
+      // Initial geofencing check
+      checkGeofencing(location.lng, location.lat);
     });
 
     return () => {
