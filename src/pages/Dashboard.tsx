@@ -115,9 +115,17 @@ const Dashboard = () => {
                 <FileText className="mr-2 h-4 w-4" />
                 Lost & Found
               </Button>
+              <Button variant="outline" onClick={() => navigate("/fir-report")}>
+                <FileText className="mr-2 h-4 w-4" />
+                FIR Report
+              </Button>
               <Button variant="outline" onClick={() => navigate("/authority")}>
                 <Shield className="mr-2 h-4 w-4" />
                 Authority Portal
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/admin")}>
+                <Shield className="mr-2 h-4 w-4" />
+                Admin Panel
               </Button>
               <Button variant="ghost" onClick={handleSignOut}>
                 Sign Out
