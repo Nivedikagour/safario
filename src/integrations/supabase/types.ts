@@ -56,6 +56,45 @@ export type Database = {
         }
         Relationships: []
       }
+      fir_reports: {
+        Row: {
+          created_at: string
+          description: string
+          fir_number: string
+          id: string
+          incident_type: string
+          location_lat: number
+          location_lng: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          fir_number: string
+          id?: string
+          incident_type: string
+          location_lat: number
+          location_lng: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          fir_number?: string
+          id?: string
+          incident_type?: string
+          location_lat?: number
+          location_lng?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lost_items: {
         Row: {
           created_at: string | null

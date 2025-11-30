@@ -91,7 +91,7 @@ const AdminPanel = () => {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
+  const handleRoleChange = async (userId: string, newRole: "user" | "authority" | "admin") => {
     try {
       const { error } = await supabase
         .from("user_roles")
@@ -222,7 +222,7 @@ const AdminPanel = () => {
                   <div className="w-48">
                     <Select
                       value={user.role}
-                      onValueChange={(value) => handleRoleChange(user.user_id, value)}
+                      onValueChange={(value) => handleRoleChange(user.user_id, value as "user" | "authority" | "admin")}
                     >
                       <SelectTrigger>
                         <SelectValue />
