@@ -13,6 +13,7 @@ import IDCard from "./pages/IDCard";
 import AuthorityPortal from "./pages/AuthorityPortal";
 import AdminPanel from "./pages/AdminPanel";
 import FIRReport from "./pages/FIRReport";
+import EmergencyContacts from "./pages/EmergencyContacts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/authority" element={<AuthorityPortal />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/fir-report" element={<FIRReport />} />
+          <Route path="/emergency-contacts" element={<EmergencyContacts />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

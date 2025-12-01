@@ -128,6 +128,11 @@ const IDGeneration = () => {
     }
   };
 
+  const handleBackToAuth = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
       <div
@@ -140,7 +145,7 @@ const IDGeneration = () => {
         <div className="bg-card border border-border rounded-lg shadow-2xl p-8">
           <Button
             variant="ghost"
-            onClick={() => navigate("/auth")}
+            onClick={handleBackToAuth}
             className="mb-4"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
