@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { AlertTriangle, FileText, Shield, CreditCard, MapPin } from "lucide-react";
+import { AlertTriangle, FileText, Shield, CreditCard, MapPin, Phone } from "lucide-react";
 import SafetyScore from "@/components/dashboard/SafetyScore";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
 import AlertButton from "@/components/dashboard/AlertButton";
@@ -118,6 +118,10 @@ const Dashboard = () => {
               <Button variant="outline" onClick={() => navigate("/fir-report")}>
                 <FileText className="mr-2 h-4 w-4" />
                 FIR Report
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/emergency-contacts")}>
+                <Phone className="mr-2 h-4 w-4" />
+                Emergency Contacts
               </Button>
               <Button variant="outline" onClick={() => navigate("/authority")}>
                 <Shield className="mr-2 h-4 w-4" />

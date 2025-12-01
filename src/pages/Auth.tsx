@@ -66,24 +66,18 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ 
-            phone_number: phoneNumber,
-            phone_verified: true 
-          })
-          .eq("id", user.id);
+      // Sign in with OTP using Supabase's phone authentication
+      const { data, error } = await supabase.auth.signInWithOtp({
+        phone: phoneNumber,
+      });
 
-        if (error) throw error;
-      }
+      if (error) throw error;
 
-      toast.success("Phone verified successfully!");
-      navigate("/dashboard");
+      // After successful OTP verification, redirect to ID generation
+      toast.success("Phone verified successfully! Please complete your profile.");
+      navigate("/id-generation");
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Failed to verify phone");
     } finally {
       setLoading(false);
     }
