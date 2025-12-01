@@ -40,6 +40,18 @@ const Auth = () => {
       return;
     }
 
+    // Validate E.164 format
+    if (!phoneNumber.startsWith('+')) {
+      toast.error("Phone number must start with country code (e.g., +91 for India)");
+      return;
+    }
+
+    const cleanedNumber = '+' + phoneNumber.slice(1).replace(/\D/g, '');
+    if (cleanedNumber.length < 10 || cleanedNumber.length > 16) {
+      toast.error("Please enter a valid phone number with country code");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-otp', {
@@ -200,9 +212,12 @@ const Auth = () => {
                         type="tel"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="+1234567890"
+                        placeholder="+919876543210"
                         disabled={otpSent}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Include country code (e.g., +91 for India, +1 for US)
+                      </p>
                     </div>
                     
                     {!otpSent ? (
@@ -289,9 +304,12 @@ const Auth = () => {
                         type="tel"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="+1234567890"
+                        placeholder="+919876543210"
                         disabled={otpSent}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Include country code (e.g., +91 for India, +1 for US)
+                      </p>
                     </div>
                     
                     {!otpSent ? (
