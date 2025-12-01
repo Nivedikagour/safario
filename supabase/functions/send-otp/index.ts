@@ -18,6 +18,18 @@ serve(async (req) => {
       throw new Error('Phone number is required');
     }
 
+    // Validate E.164 format (must start with + and contain only digits after that)
+    if (!phoneNumber.startsWith('+')) {
+      throw new Error('Phone number must be in E.164 format (e.g., +919876543210)');
+    }
+
+    // Remove any non-digit characters except the leading +
+    const cleanedNumber = '+' + phoneNumber.slice(1).replace(/\D/g, '');
+    
+    if (cleanedNumber.length < 10 || cleanedNumber.length > 16) {
+      throw new Error('Phone number must be between 10 and 15 digits (including country code)');
+    }
+
     const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID');
     const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
     const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
@@ -40,7 +52,7 @@ serve(async (req) => {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          To: phoneNumber,
+          To: cleanedNumber,
           From: TWILIO_PHONE_NUMBER,
           Body: `Your Safario verification code is: ${otp}. Valid for 10 minutes.`,
         }),
@@ -53,7 +65,7 @@ serve(async (req) => {
       throw new Error('Failed to send OTP');
     }
 
-    console.log('OTP sent successfully to:', phoneNumber);
+    console.log('OTP sent successfully to:', cleanedNumber);
 
     return new Response(
       JSON.stringify({ success: true, otp }), // In production, don't return OTP
