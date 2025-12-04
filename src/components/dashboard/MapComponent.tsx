@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MapComponentProps {
   location: { lat: number; lng: number } | null;
@@ -10,18 +11,32 @@ const MapComponent = ({ location }: MapComponentProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
+  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch Mapbox token from edge function
+  useEffect(() => {
+    const fetchToken = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('mapbox-token');
+        if (error) throw error;
+        if (data?.token) {
+          setMapboxToken(data.token);
+        } else {
+          setError('Mapbox token not configured');
+        }
+      } catch (err) {
+        console.error('Failed to fetch Mapbox token:', err);
+        setError('Failed to load map configuration');
+      }
+    };
+    fetchToken();
+  }, []);
 
   useEffect(() => {
-    if (!mapContainer.current || !location) return;
+    if (!mapContainer.current || !location || !mapboxToken) return;
 
-    const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
-    
-    if (!MAPBOX_TOKEN) {
-      console.error('Mapbox token not found');
-      return;
-    }
-
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+    mapboxgl.accessToken = mapboxToken;
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -154,7 +169,7 @@ const MapComponent = ({ location }: MapComponentProps) => {
     return () => {
       map.current?.remove();
     };
-  }, [location]);
+  }, [location, mapboxToken]);
 
   // Update marker position when location changes
   useEffect(() => {
@@ -164,10 +179,18 @@ const MapComponent = ({ location }: MapComponentProps) => {
     }
   }, [location]);
 
-  if (!location) {
+  if (error) {
+    return (
+      <div className="bg-destructive/10 rounded-lg h-96 flex items-center justify-center">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
+
+  if (!mapboxToken || !location) {
     return (
       <div className="bg-accent/10 rounded-lg h-96 flex items-center justify-center">
-        <p className="text-muted-foreground">Waiting for location...</p>
+        <p className="text-muted-foreground">{!mapboxToken ? 'Loading map...' : 'Waiting for location...'}</p>
       </div>
     );
   }
