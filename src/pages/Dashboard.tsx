@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { AlertTriangle, FileText, Shield, CreditCard, MapPin, Phone } from "lucide-react";
+import { AlertTriangle, FileText, Shield, CreditCard, MapPin, Phone, Navigation } from "lucide-react";
 import SafetyScore from "@/components/dashboard/SafetyScore";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
 import AlertButton from "@/components/dashboard/AlertButton";
@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [famousPlaces, setFamousPlaces] = useState<{
     city: string;
-    places: Array<{ name: string; description: string; imageUrl: string; distance?: string; category?: string }>;
+    places: Array<{ name: string; description: string; imageUrl: string; distance?: string; category?: string; directionsUrl?: string }>;
   } | null>(null);
 
   useEffect(() => {
@@ -230,7 +230,7 @@ const Dashboard = () => {
           {famousPlaces ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {famousPlaces.places.map((place, index) => (
-                <div key={index} className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
+                <div key={index} className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:shadow-lg">
                   <img 
                     src={place.imageUrl}
                     alt={place.name}
@@ -246,10 +246,22 @@ const Dashboard = () => {
                       {place.category}
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
                     <h4 className="text-lg font-bold text-foreground mb-1">{place.name}</h4>
-                    <p className="text-xs text-muted-foreground">{place.description}</p>
+                    <p className="text-xs text-muted-foreground mb-3">{place.description}</p>
+                    {place.directionsUrl && (
+                      <a 
+                        href={place.directionsUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-medium hover:bg-primary/90 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Navigation className="h-3 w-3" />
+                        Get Directions
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}
