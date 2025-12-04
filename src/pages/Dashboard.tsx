@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [famousPlaces, setFamousPlaces] = useState<{
     city: string;
-    places: Array<{ name: string; description: string; imageUrl: string }>;
+    places: Array<{ name: string; description: string; imageUrl: string; distance?: string; category?: string }>;
   } | null>(null);
 
   useEffect(() => {
@@ -222,10 +222,10 @@ const Dashboard = () => {
 
         <Card className="p-6 bg-card/50 backdrop-blur-sm">
           <h3 className="text-xl font-semibold mb-4">
-            Famous Places in {famousPlaces?.city || "Your Area"}
+            Nearby Places in {famousPlaces?.city || "Your Area"}
           </h3>
           <p className="text-sm text-muted-foreground mb-6">
-            {famousPlaces ? `Discover must-visit destinations in ${famousPlaces.city}` : "Loading nearby attractions..."}
+            {famousPlaces ? `Discover attractions near your current location` : "Finding nearby attractions..."}
           </p>
           {famousPlaces ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -236,6 +236,16 @@ const Dashboard = () => {
                     alt={place.name}
                     className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
                   />
+                  {place.distance && (
+                    <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground px-2 py-1 rounded-full text-xs font-medium">
+                      {place.distance}
+                    </div>
+                  )}
+                  {place.category && (
+                    <div className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-xs">
+                      {place.category}
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                     <h4 className="text-lg font-bold text-foreground mb-1">{place.name}</h4>
