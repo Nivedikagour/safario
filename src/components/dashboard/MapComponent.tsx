@@ -55,29 +55,58 @@ const MapComponent = ({ location }: MapComponentProps) => {
       .setLngLat([location.lng, location.lat])
       .addTo(map.current);
 
-    // Define danger zones with actual coordinates
+    // Define safe perimeter around user's starting location (1km radius)
+    const safePerimeter = {
+      centerLng: location.lng,
+      centerLat: location.lat,
+      radius: 1000, // 1km safe zone
+      name: 'Safe Tourism Area'
+    };
+
+    // Define specific danger zones
     const dangerZones = [
-      { lng: location.lng + 0.01, lat: location.lat + 0.01, name: 'High Crime Area', radius: 500 },
-      { lng: location.lng - 0.015, lat: location.lat + 0.005, name: 'Unsafe Zone', radius: 400 },
+      { lng: location.lng + 0.012, lat: location.lat + 0.008, name: 'High Crime Area', radius: 300 },
+      { lng: location.lng - 0.015, lat: location.lat + 0.01, name: 'Unsafe Zone', radius: 250 },
+      { lng: location.lng + 0.008, lat: location.lat - 0.012, name: 'Restricted Area', radius: 200 },
     ];
 
-    const safeZones = [
-      { lng: location.lng - 0.01, lat: location.lat - 0.01, name: 'Tourist Safe Zone', radius: 600 },
-    ];
+    // Function to calculate distance in meters
+    const calculateDistance = (lng1: number, lat1: number, lng2: number, lat2: number) => {
+      const R = 6371000; // Earth's radius in meters
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    };
 
-    // Function to check if user is in danger zone
+    // Function to check geofencing
     const checkGeofencing = (userLng: number, userLat: number) => {
+      // Check if user is outside safe perimeter
+      const distanceFromCenter = calculateDistance(
+        safePerimeter.centerLng, safePerimeter.centerLat,
+        userLng, userLat
+      );
+      
+      if (distanceFromCenter > safePerimeter.radius) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('⚠️ Outside Safe Zone!', {
+            body: `You have left the ${safePerimeter.name}. Please return to the safe area!`,
+            icon: '/favicon.ico',
+          });
+        }
+      }
+
+      // Check if user entered specific danger zones
       dangerZones.forEach(zone => {
-        const distance = Math.sqrt(
-          Math.pow((userLng - zone.lng) * 111000, 2) + 
-          Math.pow((userLat - zone.lat) * 111000, 2)
-        );
+        const distance = calculateDistance(zone.lng, zone.lat, userLng, userLat);
         
         if (distance <= zone.radius) {
-          // User entered danger zone - show alert
           if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('⚠️ Danger Zone Alert', {
-              body: `You are entering ${zone.name}. Please be cautious!`,
+            new Notification('🚨 Danger Zone Alert!', {
+              body: `You are entering ${zone.name}. Please be extremely cautious!`,
               icon: '/favicon.ico',
             });
           }
@@ -94,6 +123,55 @@ const MapComponent = ({ location }: MapComponentProps) => {
     map.current.on('load', () => {
       if (!map.current) return;
 
+      // Create circle GeoJSON for safe perimeter
+      const createCircle = (centerLng: number, centerLat: number, radiusKm: number, points = 64) => {
+        const coords = [];
+        for (let i = 0; i < points; i++) {
+          const angle = (i / points) * 2 * Math.PI;
+          const dx = radiusKm * Math.cos(angle);
+          const dy = radiusKm * Math.sin(angle);
+          const lat = centerLat + (dy / 111.32);
+          const lng = centerLng + (dx / (111.32 * Math.cos(centerLat * Math.PI / 180)));
+          coords.push([lng, lat]);
+        }
+        coords.push(coords[0]); // Close the polygon
+        return coords;
+      };
+
+      // Add safe perimeter (green circle)
+      map.current!.addSource('safe-perimeter', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: { name: safePerimeter.name },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [createCircle(safePerimeter.centerLng, safePerimeter.centerLat, safePerimeter.radius / 1000)]
+          },
+        },
+      });
+
+      map.current!.addLayer({
+        id: 'safe-perimeter-fill',
+        type: 'fill',
+        source: 'safe-perimeter',
+        paint: {
+          'fill-color': '#10b981',
+          'fill-opacity': 0.1,
+        },
+      });
+
+      map.current!.addLayer({
+        id: 'safe-perimeter-line',
+        type: 'line',
+        source: 'safe-perimeter',
+        paint: {
+          'line-color': '#10b981',
+          'line-width': 3,
+          'line-dasharray': [2, 2],
+        },
+      });
+
       // Add danger zones
       dangerZones.forEach((zone, index) => {
         map.current!.addSource(`danger-zone-${index}`, {
@@ -102,62 +180,46 @@ const MapComponent = ({ location }: MapComponentProps) => {
             type: 'Feature',
             properties: { name: zone.name },
             geometry: {
-              type: 'Point',
-              coordinates: [zone.lng, zone.lat],
+              type: 'Polygon',
+              coordinates: [createCircle(zone.lng, zone.lat, zone.radius / 1000)]
             },
           },
         });
 
         map.current!.addLayer({
-          id: `danger-zone-circle-${index}`,
-          type: 'circle',
+          id: `danger-zone-fill-${index}`,
+          type: 'fill',
           source: `danger-zone-${index}`,
           paint: {
-            'circle-radius': {
-              stops: [
-                [0, 0],
-                [20, zone.radius / 10],
-              ],
-              base: 2,
-            },
-            'circle-color': '#ef4444',
-            'circle-opacity': 0.3,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ef4444',
-          },
-        });
-      });
-
-      // Add safe zones
-      safeZones.forEach((zone, index) => {
-        map.current!.addSource(`safe-zone-${index}`, {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: { name: zone.name },
-            geometry: {
-              type: 'Point',
-              coordinates: [zone.lng, zone.lat],
-            },
+            'fill-color': '#ef4444',
+            'fill-opacity': 0.3,
           },
         });
 
         map.current!.addLayer({
-          id: `safe-zone-circle-${index}`,
-          type: 'circle',
-          source: `safe-zone-${index}`,
+          id: `danger-zone-line-${index}`,
+          type: 'line',
+          source: `danger-zone-${index}`,
           paint: {
-            'circle-radius': {
-              stops: [
-                [0, 0],
-                [20, zone.radius / 10],
-              ],
-              base: 2,
-            },
-            'circle-color': '#10b981',
-            'circle-opacity': 0.3,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#10b981',
+            'line-color': '#ef4444',
+            'line-width': 2,
+          },
+        });
+
+        // Add danger zone label
+        map.current!.addLayer({
+          id: `danger-zone-label-${index}`,
+          type: 'symbol',
+          source: `danger-zone-${index}`,
+          layout: {
+            'text-field': zone.name,
+            'text-size': 12,
+            'text-anchor': 'center',
+          },
+          paint: {
+            'text-color': '#dc2626',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 2,
           },
         });
       });
@@ -199,10 +261,10 @@ const MapComponent = ({ location }: MapComponentProps) => {
     <div className="relative w-full h-96 rounded-lg overflow-hidden">
       <div ref={mapContainer} className="absolute inset-0" />
       <div className="absolute bottom-4 left-4 bg-card/90 backdrop-blur-sm p-3 rounded-lg shadow-lg">
-        <div className="flex gap-4 text-xs">
+        <div className="flex flex-col gap-2 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span>Safe Zone</span>
+            <div className="w-3 h-3 rounded-full border-2 border-dashed border-green-500 bg-green-500/20" />
+            <span>Safe Perimeter (1km)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500" />
@@ -213,6 +275,7 @@ const MapComponent = ({ location }: MapComponentProps) => {
             <span>Your Location</span>
           </div>
         </div>
+        <p className="text-muted-foreground text-[10px] mt-2">⚠️ Alerts if you exit safe area</p>
       </div>
     </div>
   );
