@@ -81,6 +81,27 @@ const LostFound = () => {
     reader.readAsDataURL(file);
   };
 
+  const generateFIRForLostItem = async (itemName: string, description: string, lat: number, lng: number) => {
+    const firNumber = `FIR-LOST-${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    
+    const { error } = await supabase.from("fir_reports").insert({
+      user_id: user.id,
+      fir_number: firNumber,
+      incident_type: "lost_documents",
+      description: `Lost Item Report: ${itemName}\n\nDescription: ${description}\n\nThis FIR was automatically generated for a lost item report.`,
+      location_lat: lat,
+      location_lng: lng,
+      status: "filed",
+    });
+
+    if (error) {
+      console.error("Error generating FIR:", error);
+      throw error;
+    }
+
+    return firNumber;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -93,7 +114,7 @@ const LostFound = () => {
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const { error: uploadError, data } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('lost-items')
           .upload(fileName, imageFile);
 
@@ -120,7 +141,19 @@ const LostFound = () => {
 
       if (error) throw error;
 
-      toast.success("Lost item report submitted successfully!");
+      // Auto-generate FIR for the lost item
+      if (location) {
+        const firNumber = await generateFIRForLostItem(
+          formData.item_name,
+          formData.description,
+          location.lat,
+          location.lng
+        );
+        toast.success(`Lost item reported! FIR ${firNumber} has been automatically generated.`);
+      } else {
+        toast.success("Lost item report submitted successfully!");
+      }
+
       setFormData({ item_name: "", description: "" });
       setImageFile(null);
       setImagePreview(null);
@@ -151,6 +184,9 @@ const LostFound = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="p-6 bg-card/50 backdrop-blur-sm">
             <h2 className="text-2xl font-bold mb-4">Report Lost Item</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              An FIR will be automatically generated when you submit this report.
+            </p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="item_name">Item Name</Label>
@@ -202,7 +238,7 @@ const LostFound = () => {
               )}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Submitting..." : "Submit Report"}
+                {loading ? "Submitting..." : "Submit Report & Generate FIR"}
               </Button>
             </form>
           </Card>
@@ -234,7 +270,11 @@ const LostFound = () => {
                               Reported: {new Date(item.created_at).toLocaleDateString()}
                             </p>
                           </div>
-                          <span className="px-3 py-1 bg-destructive/10 text-destructive text-xs rounded-full">
+                          <span className={`px-3 py-1 text-xs rounded-full ${
+                            item.status === 'found' 
+                              ? 'bg-green-500/10 text-green-500' 
+                              : 'bg-destructive/10 text-destructive'
+                          }`}>
                             {item.status}
                           </span>
                         </div>
