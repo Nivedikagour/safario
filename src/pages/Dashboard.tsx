@@ -15,6 +15,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>("user");
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [famousPlaces, setFamousPlaces] = useState<{
     city: string;
@@ -28,6 +29,7 @@ const Dashboard = () => {
       } else {
         setUser(session.user);
         fetchProfile(session.user.id);
+        fetchUserRole(session.user.id);
         requestLocation();
       }
     });
@@ -52,6 +54,18 @@ const Dashboard = () => {
       navigate("/id-generation");
     } else {
       setProfile(data);
+    }
+  };
+
+  const fetchUserRole = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .single();
+
+    if (data) {
+      setUserRole(data.role);
     }
   };
 
@@ -106,7 +120,7 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <h1 className="text-2xl font-bold text-foreground">Safario</h1>
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
               <Button variant="outline" onClick={() => navigate("/id-card")}>
                 <CreditCard className="mr-2 h-4 w-4" />
                 View ID
@@ -123,14 +137,18 @@ const Dashboard = () => {
                 <Phone className="mr-2 h-4 w-4" />
                 Emergency Contacts
               </Button>
-              <Button variant="outline" onClick={() => navigate("/authority")}>
-                <Shield className="mr-2 h-4 w-4" />
-                Authority Portal
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/admin")}>
-                <Shield className="mr-2 h-4 w-4" />
-                Admin Panel
-              </Button>
+              {(userRole === "authority" || userRole === "admin") && (
+                <Button variant="outline" onClick={() => navigate("/authority")}>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Authority Portal
+                </Button>
+              )}
+              {userRole === "admin" && (
+                <Button variant="outline" onClick={() => navigate("/admin")}>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Admin Panel
+                </Button>
+              )}
               <Button variant="ghost" onClick={handleSignOut}>
                 Sign Out
               </Button>
@@ -141,10 +159,27 @@ const Dashboard = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Welcome back, {profile?.full_name}!
-          </h2>
-          <p className="text-muted-foreground">Stay safe on your journey</p>
+          <div className="flex items-center gap-3 mb-2">
+            <h2 className="text-3xl font-bold text-foreground">
+              Welcome back, {profile?.full_name}!
+            </h2>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              userRole === "admin" 
+                ? "bg-destructive/20 text-destructive" 
+                : userRole === "authority" 
+                  ? "bg-primary/20 text-primary" 
+                  : "bg-accent text-accent-foreground"
+            }`}>
+              {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+            </span>
+          </div>
+          <p className="text-muted-foreground">
+            {userRole === "authority" 
+              ? "Monitor and respond to emergency alerts" 
+              : userRole === "admin" 
+                ? "Full system access and management" 
+                : "Stay safe on your journey"}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
