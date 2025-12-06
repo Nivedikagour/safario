@@ -28,6 +28,7 @@ const IDGeneration = () => {
     passport_number: "",
     aadhar_number: "",
     preferred_language: "English",
+    role: "user" as "user" | "authority" | "admin",
   });
 
   useEffect(() => {
@@ -103,7 +104,8 @@ const IDGeneration = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("profiles").insert([
+      // Insert profile
+      const { error: profileError } = await supabase.from("profiles").insert([
         {
           id: user.id,
           full_name: formData.full_name,
@@ -117,7 +119,17 @@ const IDGeneration = () => {
         },
       ]);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Insert user role
+      const { error: roleError } = await supabase.from("user_roles").insert([
+        {
+          user_id: user.id,
+          role: formData.role,
+        },
+      ]);
+
+      if (roleError) throw roleError;
 
       toast.success("Digital ID created successfully!");
       navigate("/dashboard");
@@ -208,6 +220,28 @@ const IDGeneration = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="role">Account Type</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value: "user" | "authority" | "admin") => setFormData({ ...formData, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User (Tourist)</SelectItem>
+                    <SelectItem value="authority">Authority (Police/Emergency)</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {formData.role === "user" && "Access to tourist features, emergency alerts, and safety tools"}
+                  {formData.role === "authority" && "Access to Authority Portal to manage alerts and reports"}
+                  {formData.role === "admin" && "Full access including Admin Panel and Authority Portal"}
+                </p>
               </div>
 
               <div className="space-y-2 md:col-span-2">
