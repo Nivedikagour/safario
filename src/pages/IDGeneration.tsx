@@ -44,14 +44,27 @@ const IDGeneration = () => {
   }, [navigate]);
 
   const checkProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data: profileData } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
 
-    if (data) {
-      navigate("/dashboard");
+    if (profileData) {
+      // Check user role and redirect accordingly
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .single();
+
+      if (roleData?.role === "authority") {
+        navigate("/authority");
+      } else if (roleData?.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     }
   };
 
@@ -124,6 +137,8 @@ const IDGeneration = () => {
         user_id: user.id,
         role: formData.role,
       }, { onConflict: 'user_id' });
+
+      if (roleError) throw roleError;
 
       toast.success("Digital ID created successfully!");
       
