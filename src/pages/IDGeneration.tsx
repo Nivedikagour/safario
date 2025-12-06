@@ -132,7 +132,15 @@ const IDGeneration = () => {
       if (roleError) throw roleError;
 
       toast.success("Digital ID created successfully!");
-      navigate("/dashboard");
+      
+      // Redirect based on role
+      if (formData.role === "authority") {
+        navigate("/authority");
+      } else if (formData.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to create ID");
     } finally {
