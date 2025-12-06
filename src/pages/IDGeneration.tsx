@@ -104,32 +104,26 @@ const IDGeneration = () => {
     setLoading(true);
 
     try {
-      // Insert profile
-      const { error: profileError } = await supabase.from("profiles").insert([
-        {
-          id: user.id,
-          full_name: formData.full_name,
-          gender: formData.gender,
-          age: parseInt(formData.age),
-          date_of_birth: formData.date_of_birth,
-          passport_number: formData.passport_number || null,
-          aadhar_number: formData.aadhar_number || null,
-          preferred_language: formData.preferred_language,
-          profile_image_url: profileImage,
-        },
-      ]);
+      // Upsert profile (insert or update if exists)
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: user.id,
+        full_name: formData.full_name,
+        gender: formData.gender,
+        age: parseInt(formData.age),
+        date_of_birth: formData.date_of_birth,
+        passport_number: formData.passport_number || null,
+        aadhar_number: formData.aadhar_number || null,
+        preferred_language: formData.preferred_language,
+        profile_image_url: profileImage,
+      }, { onConflict: 'id' });
 
       if (profileError) throw profileError;
 
-      // Insert user role
-      const { error: roleError } = await supabase.from("user_roles").insert([
-        {
-          user_id: user.id,
-          role: formData.role,
-        },
-      ]);
-
-      if (roleError) throw roleError;
+      // Upsert user role (insert or update if exists)
+      const { error: roleError } = await supabase.from("user_roles").upsert({
+        user_id: user.id,
+        role: formData.role,
+      }, { onConflict: 'user_id' });
 
       toast.success("Digital ID created successfully!");
       
