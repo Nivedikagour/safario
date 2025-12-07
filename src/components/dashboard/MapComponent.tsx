@@ -5,14 +5,17 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface MapComponentProps {
   location: { lat: number; lng: number } | null;
+  destination?: string | null;
 }
 
-const MapComponent = ({ location }: MapComponentProps) => {
+const MapComponent = ({ location, destination }: MapComponentProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
+  const destinationMarker = useRef<mapboxgl.Marker | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   // Fetch Mapbox token from edge function
   useEffect(() => {
@@ -32,6 +35,29 @@ const MapComponent = ({ location }: MapComponentProps) => {
     };
     fetchToken();
   }, []);
+
+  // Geocode destination
+  useEffect(() => {
+    const geocodeDestination = async () => {
+      if (!destination || !mapboxToken) return;
+      
+      try {
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destination)}.json?access_token=${mapboxToken}&limit=1`
+        );
+        const data = await response.json();
+        
+        if (data.features && data.features.length > 0) {
+          const [lng, lat] = data.features[0].center;
+          setDestinationCoords({ lat, lng });
+        }
+      } catch (err) {
+        console.error('Failed to geocode destination:', err);
+      }
+    };
+    
+    geocodeDestination();
+  }, [destination, mapboxToken]);
 
   useEffect(() => {
     if (!mapContainer.current || !location || !mapboxToken) return;
@@ -226,12 +252,66 @@ const MapComponent = ({ location }: MapComponentProps) => {
 
       // Initial geofencing check
       checkGeofencing(location.lng, location.lat);
+
+      // Add route if destination exists
+      if (destinationCoords && location) {
+        // Add destination marker
+        destinationMarker.current = new mapboxgl.Marker({ color: '#ef4444' })
+          .setLngLat([destinationCoords.lng, destinationCoords.lat])
+          .setPopup(new mapboxgl.Popup().setHTML(`<strong>${destination}</strong>`))
+          .addTo(map.current!);
+
+        // Fetch route from Mapbox Directions API
+        fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${location.lng},${location.lat};${destinationCoords.lng},${destinationCoords.lat}?geometries=geojson&access_token=${mapboxToken}`
+        )
+          .then(res => res.json())
+          .then(data => {
+            if (data.routes && data.routes.length > 0) {
+              const route = data.routes[0].geometry;
+
+              map.current!.addSource('route', {
+                type: 'geojson',
+                data: {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: route
+                }
+              });
+
+              map.current!.addLayer({
+                id: 'route',
+                type: 'line',
+                source: 'route',
+                layout: {
+                  'line-join': 'round',
+                  'line-cap': 'round'
+                },
+                paint: {
+                  'line-color': '#3b82f6',
+                  'line-width': 5,
+                  'line-opacity': 0.8
+                }
+              });
+
+              // Fit bounds to show entire route
+              const coordinates = route.coordinates;
+              const bounds = coordinates.reduce((bounds: mapboxgl.LngLatBounds, coord: [number, number]) => {
+                return bounds.extend(coord);
+              }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+
+              map.current!.fitBounds(bounds, { padding: 50 });
+            }
+          })
+          .catch(err => console.error('Failed to fetch route:', err));
+      }
     });
 
     return () => {
+      destinationMarker.current?.remove();
       map.current?.remove();
     };
-  }, [location, mapboxToken]);
+  }, [location, mapboxToken, destinationCoords, destination]);
 
   // Update marker position when location changes
   useEffect(() => {
