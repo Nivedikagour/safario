@@ -4,13 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { AlertTriangle, FileText, Shield, CreditCard, MapPin, Phone, Navigation, ExternalLink, Map } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { AlertTriangle, FileText, Shield, CreditCard, MapPin, Phone, ExternalLink, Map } from "lucide-react";
 import SafetyScore from "@/components/dashboard/SafetyScore";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
 import AlertButton from "@/components/dashboard/AlertButton";
@@ -291,39 +285,30 @@ const Dashboard = () => {
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <h4 className="text-lg font-bold text-foreground mb-1">{place.name}</h4>
                     <p className="text-xs text-muted-foreground mb-3">{place.description}</p>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button 
-                          className="inline-flex items-center gap-1 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-medium hover:bg-primary/90 transition-colors"
+                    <div className="flex gap-2">
+                      <button 
+                        className="inline-flex items-center gap-1 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-medium hover:bg-primary/90 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/map?destination=${encodeURIComponent(place.name)}`);
+                        }}
+                      >
+                        <Map className="h-3 w-3" />
+                        View on Map
+                      </button>
+                      {place.directionsUrl && (
+                        <a 
+                          href={place.directionsUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 bg-accent text-accent-foreground px-3 py-1.5 rounded-full text-xs font-medium hover:bg-accent/80 transition-colors"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Navigation className="h-3 w-3" />
-                          Get Directions
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-48">
-                        <DropdownMenuItem 
-                          onClick={() => navigate(`/map?destination=${encodeURIComponent(place.name)}`)}
-                          className="cursor-pointer"
-                        >
-                          <Map className="h-4 w-4 mr-2" />
-                          Open in App Map
-                        </DropdownMenuItem>
-                        {place.directionsUrl && (
-                          <DropdownMenuItem asChild>
-                            <a 
-                              href={place.directionsUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="cursor-pointer"
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Open in Google Maps
-                            </a>
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <ExternalLink className="h-3 w-3" />
+                          Google Maps
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
