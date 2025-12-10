@@ -41,6 +41,11 @@ const Map = () => {
             description: "Unable to get your location. Please enable location services.",
             variant: "destructive",
           });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     }

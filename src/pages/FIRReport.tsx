@@ -28,6 +28,38 @@ const FIRReport = () => {
     requestLocation();
   }, []);
 
+  // Subscribe to realtime FIR updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('fir-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'fir_reports',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          setMyReports(prev => prev.map(report => 
+            report.id === payload.new.id ? payload.new : report
+          ));
+          if (payload.new.status === 'closed') {
+            toast.success(`Your FIR ${payload.new.fir_number} has been closed by authorities.`);
+          } else if (payload.new.status === 'investigating') {
+            toast.info(`Your FIR ${payload.new.fir_number} is now under investigation.`);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -61,7 +93,8 @@ const FIRReport = () => {
         (error) => {
           console.error("Error getting location:", error);
           toast.error("Unable to get location. Please enable location services.");
-        }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     }
   };
