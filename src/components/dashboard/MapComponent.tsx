@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface MapComponentProps {
   location: { lat: number; lng: number } | null;
@@ -16,6 +17,19 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const alertSentRef = useRef<boolean>(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get current user
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    };
+    getUser();
+  }, []);
 
   // Fetch Mapbox token from edge function
   useEffect(() => {
@@ -58,6 +72,42 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
     
     geocodeDestination();
   }, [destination, mapboxToken]);
+
+  // Send auto alert to authority portal
+  const sendDangerZoneAlert = useCallback(async (zoneName: string, userLat: number, userLng: number) => {
+    if (!userId || alertSentRef.current) return;
+    
+    try {
+      alertSentRef.current = true;
+      
+      const { error } = await supabase.from('emergency_alerts').insert({
+        user_id: userId,
+        alert_type: 'danger_zone',
+        location_lat: userLat,
+        location_lng: userLng,
+        status: 'active',
+        response_notes: `Auto-alert: User entered ${zoneName}`
+      });
+
+      if (error) throw error;
+
+      toast.error(`🚨 ALERT SENT: You entered ${zoneName}. Authorities have been notified!`, {
+        duration: 10000,
+      });
+
+      // Also save to user_locations
+      await supabase.from('user_locations').insert({
+        user_id: userId,
+        location_lat: userLat,
+        location_lng: userLng,
+        is_in_danger_zone: true
+      });
+
+    } catch (err) {
+      console.error('Failed to send danger zone alert:', err);
+      alertSentRef.current = false;
+    }
+  }, [userId]);
 
   useEffect(() => {
     if (!mapContainer.current || !location || !mapboxToken) return;
@@ -108,7 +158,7 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
       return R * c;
     };
 
-    // Function to check geofencing
+    // Function to check geofencing and send alerts
     const checkGeofencing = (userLng: number, userLat: number) => {
       // Check if user is outside safe perimeter
       const distanceFromCenter = calculateDistance(
@@ -123,6 +173,8 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
             icon: '/favicon.ico',
           });
         }
+        // Send auto alert when leaving safe zone
+        sendDangerZoneAlert('Outside Safe Perimeter', userLat, userLng);
       }
 
       // Check if user entered specific danger zones
@@ -136,6 +188,8 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
               icon: '/favicon.ico',
             });
           }
+          // Send auto alert to authorities
+          sendDangerZoneAlert(zone.name, userLat, userLng);
         }
       });
     };
@@ -311,9 +365,9 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
       destinationMarker.current?.remove();
       map.current?.remove();
     };
-  }, [location, mapboxToken, destinationCoords, destination]);
+  }, [location, mapboxToken, destinationCoords, destination, sendDangerZoneAlert]);
 
-  // Update marker position when location changes
+  // Update marker position when location changes and check geofencing
   useEffect(() => {
     if (location && marker.current) {
       marker.current.setLngLat([location.lng, location.lat]);
@@ -355,7 +409,7 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
             <span>Your Location</span>
           </div>
         </div>
-        <p className="text-muted-foreground text-[10px] mt-2">⚠️ Alerts if you exit safe area</p>
+        <p className="text-muted-foreground text-[10px] mt-2">🚨 Auto-alerts authorities if you enter danger zone</p>
       </div>
     </div>
   );

@@ -28,11 +28,43 @@ const LostFound = () => {
         navigate("/auth");
       } else {
         setUser(session.user);
-        fetchLostItems();
         requestLocation();
       }
     });
   }, [navigate]);
+
+  // Fetch items when user is set
+  useEffect(() => {
+    if (user) {
+      fetchLostItems();
+      
+      // Subscribe to realtime updates for user's lost items
+      const channel = supabase
+        .channel('lost-items-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'lost_items',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            setItems(prev => prev.map(item => 
+              item.id === payload.new.id ? payload.new : item
+            ));
+            if (payload.new.status === 'found') {
+              toast.success(`Your item "${payload.new.item_name}" has been marked as found!`);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
 
   const requestLocation = () => {
     if (navigator.geolocation) {
@@ -42,15 +74,19 @@ const LostFound = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           });
-        }
+        },
+        (error) => console.error("Location error:", error),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     }
   };
 
   const fetchLostItems = async () => {
+    if (!user) return;
     const { data } = await supabase
       .from("lost_items")
       .select("*")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(10);
 
