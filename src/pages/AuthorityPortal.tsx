@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Shield, AlertTriangle, Clock, CheckCircle, ArrowLeft, FileText, Package } from "lucide-react";
+import { Shield, AlertTriangle, Clock, CheckCircle, ArrowLeft, FileText, Package, Navigation, MapPin } from "lucide-react";
 
 interface Alert {
   id: string;
@@ -413,9 +413,25 @@ const AuthorityPortal = () => {
                             </div>
                           </div>
                         ) : (
-                          <Button onClick={() => setRespondingTo(alert.id)} className="w-full">
-                            Respond to Alert
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={() => {
+                                window.open(
+                                  `https://www.google.com/maps/dir/?api=1&destination=${alert.location_lat},${alert.location_lng}`,
+                                  '_blank'
+                                );
+                              }} 
+                              variant="outline"
+                              className="flex-1"
+                            >
+                              <Navigation className="mr-2 h-4 w-4" />
+                              Get Directions
+                            </Button>
+                            <Button onClick={() => setRespondingTo(alert.id)} className="flex-1">
+                              <MapPin className="mr-2 h-4 w-4" />
+                              Respond to Alert
+                            </Button>
+                          </div>
                         )}
                       </>
                     )}
