@@ -132,22 +132,24 @@ const IDGeneration = () => {
 
       if (profileError) throw profileError;
 
-      // Upsert user role (insert or update if exists)
-      const { error: roleError } = await supabase.from("user_roles").upsert({
+      // Determine role status - admin/authority require approval
+      const isPrivilegedRole = formData.role === "admin" || formData.role === "authority";
+      const roleStatus = isPrivilegedRole ? "pending" : "approved";
+
+      // Insert user role with appropriate status
+      const { error: roleError } = await supabase.from("user_roles").insert({
         user_id: user.id,
         role: formData.role,
-      }, { onConflict: 'user_id' });
+        role_status: roleStatus,
+      });
 
       if (roleError) throw roleError;
 
-      toast.success("Digital ID created successfully!");
-      
-      // Redirect based on role
-      if (formData.role === "authority") {
-        navigate("/authority");
-      } else if (formData.role === "admin") {
-        navigate("/admin");
+      if (isPrivilegedRole) {
+        toast.success("Your ID has been created! Your role request is pending admin approval. You can access the app as a regular user for now.");
+        navigate("/dashboard");
       } else {
+        toast.success("Digital ID created successfully!");
         navigate("/dashboard");
       }
     } catch (error: any) {
@@ -250,14 +252,14 @@ const IDGeneration = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">User (Tourist)</SelectItem>
-                    <SelectItem value="authority">Authority (Police/Emergency)</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="authority">Authority (Police/Emergency) - Requires Approval</SelectItem>
+                    <SelectItem value="admin">Admin - Requires Approval</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {formData.role === "user" && "Access to tourist features, emergency alerts, and safety tools"}
-                  {formData.role === "authority" && "Access to Authority Portal to manage alerts and reports"}
-                  {formData.role === "admin" && "Full access including Admin Panel and Authority Portal"}
+                  {formData.role === "authority" && "⚠️ Requires admin approval. You'll get regular user access until approved."}
+                  {formData.role === "admin" && "⚠️ Requires admin approval. You'll get regular user access until approved."}
                 </p>
               </div>
 
