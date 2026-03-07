@@ -34,19 +34,20 @@ const Map = () => {
     };
   }, [navigate]);
 
-  // Reverse geocode to get city name when location changes
+  // Reverse geocode to get city name using OpenStreetMap Nominatim (no API key needed)
   useEffect(() => {
     const reverseGeocode = async () => {
       if (!location) return;
       try {
-        const { data } = await supabase.functions.invoke('mapbox-token');
-        if (!data?.token) return;
         const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${location.lng},${location.lat}.json?types=place&access_token=${data.token}`
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.lat}&lon=${location.lng}&zoom=10&addressdetails=1`,
+          { headers: { 'Accept-Language': 'en' } }
         );
         const geo = await res.json();
-        if (geo.features?.length > 0) {
-          setCityName(geo.features[0].place_name);
+        if (geo.display_name) {
+          const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.state_district;
+          const state = geo.address?.state;
+          setCityName(city && state ? `${city}, ${state}` : geo.display_name);
         }
       } catch (err) {
         console.error("Reverse geocode failed:", err);
