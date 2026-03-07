@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Shield, AlertTriangle, Clock, CheckCircle, ArrowLeft, FileText, Package, Navigation, MapPin } from "lucide-react";
+import { Shield, AlertTriangle, Clock, CheckCircle, ArrowLeft, FileText, Package, Navigation, MapPin, BarChart3, TrendingUp, Search } from "lucide-react";
+import { useMemo } from "react";
 
 interface Alert {
   id: string;
@@ -57,6 +58,106 @@ interface LostItem {
     phone_number: string;
   };
 }
+
+const FIRStats = ({ reports }: { reports: FIRReport[] }) => {
+  const stats = useMemo(() => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return {
+      total: reports.length,
+      filed: reports.filter(r => r.status === 'filed').length,
+      investigating: reports.filter(r => r.status === 'investigating').length,
+      closed: reports.filter(r => r.status === 'closed').length,
+      recent: reports.filter(r => new Date(r.created_at) >= sevenDaysAgo).length,
+    };
+  }, [reports]);
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <Card className="p-4 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <BarChart3 className="h-4 w-4 text-primary" />
+          <p className="text-xs text-muted-foreground">Total</p>
+        </div>
+        <p className="text-2xl font-bold">{stats.total}</p>
+      </Card>
+      <Card className="p-4 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <p className="text-xs text-muted-foreground">Pending</p>
+        </div>
+        <p className="text-2xl font-bold">{stats.filed}</p>
+      </Card>
+      <Card className="p-4 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <Search className="h-4 w-4 text-yellow-500" />
+          <p className="text-xs text-muted-foreground">Investigating</p>
+        </div>
+        <p className="text-2xl font-bold">{stats.investigating}</p>
+      </Card>
+      <Card className="p-4 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <CheckCircle className="h-4 w-4 text-green-500" />
+          <p className="text-xs text-muted-foreground">Closed</p>
+        </div>
+        <p className="text-2xl font-bold">{stats.closed}</p>
+      </Card>
+      <Card className="p-4 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          <p className="text-xs text-muted-foreground">Last 7 Days</p>
+        </div>
+        <p className="text-2xl font-bold">{stats.recent}</p>
+      </Card>
+    </div>
+  );
+};
+
+const LostItemStats = ({ items }: { items: LostItem[] }) => {
+  const stats = useMemo(() => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return {
+      total: items.length,
+      lost: items.filter(i => i.status === 'lost').length,
+      found: items.filter(i => i.status === 'found').length,
+      recent: items.filter(i => new Date(i.created_at) >= sevenDaysAgo).length,
+    };
+  }, [items]);
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <Card className="p-4 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <BarChart3 className="h-4 w-4 text-primary" />
+          <p className="text-xs text-muted-foreground">Total</p>
+        </div>
+        <p className="text-2xl font-bold">{stats.total}</p>
+      </Card>
+      <Card className="p-4 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <Package className="h-4 w-4 text-destructive" />
+          <p className="text-xs text-muted-foreground">Still Lost</p>
+        </div>
+        <p className="text-2xl font-bold">{stats.lost}</p>
+      </Card>
+      <Card className="p-4 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <CheckCircle className="h-4 w-4 text-green-500" />
+          <p className="text-xs text-muted-foreground">Found</p>
+        </div>
+        <p className="text-2xl font-bold">{stats.found}</p>
+      </Card>
+      <Card className="p-4 bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          <p className="text-xs text-muted-foreground">Last 7 Days</p>
+        </div>
+        <p className="text-2xl font-bold">{stats.recent}</p>
+      </Card>
+    </div>
+  );
+};
 
 const AuthorityPortal = () => {
   const navigate = useNavigate();
@@ -443,6 +544,7 @@ const AuthorityPortal = () => {
 
           <TabsContent value="fir" className="space-y-4">
             <h2 className="text-2xl font-bold">FIR Reports</h2>
+            {firReports.length > 0 && <FIRStats reports={firReports} />}
             {firReports.length === 0 ? (
               <Card className="p-12 text-center bg-card/50 backdrop-blur-sm">
                 <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -510,6 +612,7 @@ const AuthorityPortal = () => {
 
           <TabsContent value="lost" className="space-y-4">
             <h2 className="text-2xl font-bold">Lost Items</h2>
+            {lostItems.length > 0 && <LostItemStats items={lostItems} />}
             {lostItems.length === 0 ? (
               <Card className="p-12 text-center bg-card/50 backdrop-blur-sm">
                 <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
