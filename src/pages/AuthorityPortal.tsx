@@ -512,6 +512,7 @@ const AuthorityPortal = () => {
 
           <TabsContent value="lost" className="space-y-4">
             <h2 className="text-2xl font-bold">Lost Items</h2>
+            {lostItems.length > 0 && <LostItemStats items={lostItems} />}
             {lostItems.length === 0 ? (
               <Card className="p-12 text-center bg-card/50 backdrop-blur-sm">
                 <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
