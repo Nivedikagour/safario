@@ -444,6 +444,7 @@ const AuthorityPortal = () => {
 
           <TabsContent value="fir" className="space-y-4">
             <h2 className="text-2xl font-bold">FIR Reports</h2>
+            {firReports.length > 0 && <FIRStats reports={firReports} />}
             {firReports.length === 0 ? (
               <Card className="p-12 text-center bg-card/50 backdrop-blur-sm">
                 <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
