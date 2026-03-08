@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Shield, AlertTriangle, Clock, CheckCircle, ArrowLeft, FileText, Package, Navigation, MapPin, BarChart3, TrendingUp, Search } from "lucide-react";
+import { Shield, AlertTriangle, Clock, CheckCircle, ArrowLeft, FileText, Package, Navigation, MapPin, BarChart3, TrendingUp, Search, Map as MapIcon } from "lucide-react";
 import { useMemo } from "react";
+import ZoneManagement from "@/components/dashboard/ZoneManagement";
 
 interface Alert {
   id: string;
