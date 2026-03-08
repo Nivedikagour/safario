@@ -19,14 +19,11 @@ const Index = () => {
         
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-6xl md:text-7xl font-bold mb-6 text-foreground">
-              Safario
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 md:mb-6 text-foreground">
+              SAFARIO
             </h1>
-            <p className="text-2xl md:text-3xl mb-4 text-foreground/90">
-              Your Travel Safety Companion
-            </p>
-            <p className="text-lg md:text-xl mb-12 text-muted-foreground max-w-2xl mx-auto">
-              Stay protected with real-time safety scores, emergency alerts, location tracking, and AI assistance during your travels
+            <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-8 md:mb-12 text-foreground/90">
+              Next-gen Tourist Safety & Assistance Platform
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
