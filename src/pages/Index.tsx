@@ -26,16 +26,16 @@ const Index = () => {
               Next-gen Tourist Safety & Assistance Platform
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Button size="lg" className="text-lg px-8" onClick={() => navigate("/auth")}>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-10 md:mb-16">
+              <Button size="lg" className="text-base sm:text-lg px-6 sm:px-8" onClick={() => navigate("/auth")}>
                 Get Started
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8" onClick={() => navigate("/auth")}>
+              <Button size="lg" variant="outline" className="text-base sm:text-lg px-6 sm:px-8" onClick={() => navigate("/auth")}>
                 Sign In
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-16">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mt-8 md:mt-16">
               <div className="group relative overflow-hidden rounded-lg border border-border hover:border-primary transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg">
                 <img 
                   src={thailandBeach} 
