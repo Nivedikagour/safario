@@ -671,6 +671,9 @@ const AuthorityPortal = () => {
               </div>
             )}
           </TabsContent>
+          <TabsContent value="zones">
+            <ZoneManagement />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
