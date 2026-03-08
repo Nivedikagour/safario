@@ -156,8 +156,8 @@ const Auth = () => {
       <div className="relative z-10 w-full max-w-md">
         <div className="bg-card/95 backdrop-blur-md border border-border rounded-lg shadow-2xl p-8">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">Safario</h1>
-            <p className="text-muted-foreground">Your Travel Safety Companion</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">SAFARIO</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Next-gen Tourist Safety & Assistance Platform</p>
           </div>
 
           <Tabs defaultValue="signin" className="w-full">

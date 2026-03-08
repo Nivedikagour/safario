@@ -203,7 +203,7 @@ const AdminPanel = () => {
           <p className="text-muted-foreground">Manage user roles and approve role requests</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Card className="p-6 bg-card/50 backdrop-blur-sm">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-yellow-500/10 rounded-lg">
@@ -287,8 +287,8 @@ const AdminPanel = () => {
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {pendingRequests.map((request) => (
-                  <Card key={request.id} className="p-6 bg-card/50 backdrop-blur-sm border-yellow-500/30">
-                    <div className="flex items-center justify-between">
+                  <Card key={request.id} className="p-3 sm:p-6 bg-card/50 backdrop-blur-sm border-yellow-500/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                           {request.profiles?.profile_image_url ? (

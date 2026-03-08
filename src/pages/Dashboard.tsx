@@ -117,39 +117,43 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-background">
       <nav className="border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-bold text-foreground">Safario</h1>
-            <div className="flex gap-4 flex-wrap">
-              <Button variant="outline" onClick={() => navigate("/id-card")}>
-                <CreditCard className="mr-2 h-4 w-4" />
-                View ID
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">SAFARIO</h1>
+            <div className="flex gap-1 sm:gap-2 md:gap-4 flex-wrap items-center">
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => navigate("/id-card")}>
+                <CreditCard className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">View ID</span>
+                <span className="sm:hidden">ID</span>
               </Button>
-              <Button variant="outline" onClick={() => navigate("/lost-found")}>
-                <FileText className="mr-2 h-4 w-4" />
-                Lost & Found
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => navigate("/lost-found")}>
+                <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden md:inline">Lost & Found</span>
+                <span className="md:hidden">Lost</span>
               </Button>
-              <Button variant="outline" onClick={() => navigate("/fir-report")}>
-                <FileText className="mr-2 h-4 w-4" />
-                FIR Report
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => navigate("/fir-report")}>
+                <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden md:inline">FIR Report</span>
+                <span className="md:hidden">FIR</span>
               </Button>
-              <Button variant="outline" onClick={() => navigate("/emergency-contacts")}>
-                <Phone className="mr-2 h-4 w-4" />
-                Emergency Contacts
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm hidden sm:flex" onClick={() => navigate("/emergency-contacts")}>
+                <Phone className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden lg:inline">Emergency Contacts</span>
+                <span className="lg:hidden">SOS</span>
               </Button>
               {(userRole === "authority" || userRole === "admin") && (
-                <Button variant="outline" onClick={() => navigate("/authority")}>
-                  <Shield className="mr-2 h-4 w-4" />
-                  Authority Portal
+                <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => navigate("/authority")}>
+                  <Shield className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden md:inline">Authority</span>
                 </Button>
               )}
               {userRole === "admin" && (
-                <Button variant="outline" onClick={() => navigate("/admin")}>
-                  <Shield className="mr-2 h-4 w-4" />
-                  Admin Panel
+                <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => navigate("/admin")}>
+                  <Shield className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden md:inline">Admin</span>
                 </Button>
               )}
-              <Button variant="ghost" onClick={handleSignOut}>
+              <Button variant="ghost" size="sm" className="text-xs sm:text-sm" onClick={handleSignOut}>
                 Sign Out
               </Button>
             </div>
@@ -157,13 +161,13 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <h2 className="text-3xl font-bold text-foreground">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="mb-4 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
               Welcome back, {profile?.full_name}!
             </h2>
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold w-fit ${
               userRole === "admin" 
                 ? "bg-destructive/20 text-destructive" 
                 : userRole === "authority" 
@@ -173,7 +177,7 @@ const Dashboard = () => {
               {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
             </span>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             {userRole === "authority" 
               ? "Monitor and respond to emergency alerts" 
               : userRole === "admin" 
