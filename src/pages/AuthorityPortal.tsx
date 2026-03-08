@@ -409,18 +409,26 @@ const AuthorityPortal = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="alerts" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
-            <TabsTrigger value="alerts" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 text-xs sm:text-sm">
+            <TabsTrigger value="alerts" className="flex items-center gap-1 sm:gap-2">
               <AlertTriangle className="h-4 w-4" />
-              Emergency Alerts ({alerts.length})
+              <span className="hidden sm:inline">Alerts ({alerts.length})</span>
+              <span className="sm:hidden">{alerts.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="fir" className="flex items-center gap-2">
+            <TabsTrigger value="fir" className="flex items-center gap-1 sm:gap-2">
               <FileText className="h-4 w-4" />
-              FIR Reports ({firReports.length})
+              <span className="hidden sm:inline">FIR ({firReports.length})</span>
+              <span className="sm:hidden">{firReports.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="lost" className="flex items-center gap-2">
+            <TabsTrigger value="lost" className="flex items-center gap-1 sm:gap-2">
               <Package className="h-4 w-4" />
-              Lost Items ({lostItems.length})
+              <span className="hidden sm:inline">Lost ({lostItems.length})</span>
+              <span className="sm:hidden">{lostItems.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="zones" className="flex items-center gap-1 sm:gap-2">
+              <MapIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Geofence Zones</span>
+              <span className="sm:hidden">Zones</span>
             </TabsTrigger>
           </TabsList>
 
