@@ -9,6 +9,19 @@ interface MapComponentProps {
   destination?: string | null;
 }
 
+interface GeofenceZone {
+  id: string;
+  name: string;
+  zone_type: string;
+  geometry_type: string;
+  center_lat: number | null;
+  center_lng: number | null;
+  radius_meters: number | null;
+  polygon_coords: number[][] | null;
+  severity: string;
+  description: string | null;
+}
+
 const MapComponent = ({ location, destination }: MapComponentProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -17,6 +30,8 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [geofenceZones, setGeofenceZones] = useState<GeofenceZone[]>([]);
+  const lastServerCheckRef = useRef<number>(0);
   const alertSentRef = useRef<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -24,24 +39,19 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
   useEffect(() => {
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUserId(session.user.id);
-      }
+      if (session?.user) setUserId(session.user.id);
     };
     getUser();
   }, []);
 
-  // Fetch Mapbox token from edge function
+  // Fetch Mapbox token
   useEffect(() => {
     const fetchToken = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('mapbox-token');
         if (error) throw error;
-        if (data?.token) {
-          setMapboxToken(data.token);
-        } else {
-          setError('Mapbox token not configured');
-        }
+        if (data?.token) setMapboxToken(data.token);
+        else setError('Mapbox token not configured');
       } catch (err) {
         console.error('Failed to fetch Mapbox token:', err);
         setError('Failed to load map configuration');
@@ -50,18 +60,33 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
     fetchToken();
   }, []);
 
+  // Fetch geofence zones from database
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('geofence_zones')
+          .select('*')
+          .eq('is_active', true);
+        if (error) throw error;
+        setGeofenceZones((data || []) as GeofenceZone[]);
+      } catch (err) {
+        console.error('Failed to fetch geofence zones:', err);
+      }
+    };
+    fetchZones();
+  }, []);
+
   // Geocode destination
   useEffect(() => {
     const geocodeDestination = async () => {
       if (!destination || !mapboxToken) return;
-      
       try {
         const response = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destination)}.json?access_token=${mapboxToken}&limit=1`
         );
         const data = await response.json();
-        
-        if (data.features && data.features.length > 0) {
+        if (data.features?.length > 0) {
           const [lng, lat] = data.features[0].center;
           setDestinationCoords({ lat, lng });
         }
@@ -69,51 +94,107 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
         console.error('Failed to geocode destination:', err);
       }
     };
-    
     geocodeDestination();
   }, [destination, mapboxToken]);
 
-  // Send auto alert to authority portal
-  const sendDangerZoneAlert = useCallback(async (zoneName: string, userLat: number, userLng: number) => {
-    if (!userId || alertSentRef.current) return;
-    
-    try {
-      alertSentRef.current = true;
-      
-      const { error } = await supabase.from('emergency_alerts').insert({
-        user_id: userId,
-        alert_type: 'danger_zone',
-        location_lat: userLat,
-        location_lng: userLng,
-        status: 'active',
-        response_notes: `Auto-alert: User entered ${zoneName}`
-      });
+  // Server-side geofence check
+  const serverGeofenceCheck = useCallback(async (lat: number, lng: number) => {
+    const now = Date.now();
+    // Throttle server checks to once every 30 seconds
+    if (now - lastServerCheckRef.current < 30000) return;
+    lastServerCheckRef.current = now;
 
+    try {
+      const { data, error } = await supabase.functions.invoke('geofence-check', {
+        body: { user_lat: lat, user_lng: lng }
+      });
       if (error) throw error;
 
-      toast.error(`🚨 ALERT SENT: You entered ${zoneName}. Authorities have been notified!`, {
-        duration: 10000,
-      });
-
-      // Also save to user_locations
-      await supabase.from('user_locations').insert({
-        user_id: userId,
-        location_lat: userLat,
-        location_lng: userLng,
-        is_in_danger_zone: true
-      });
-
+      if (data?.triggered_zones?.length > 0) {
+        const zone = data.triggered_zones[0];
+        toast.error(`🚨 SERVER ALERT: You are in ${zone.name} (${zone.severity}). Authorities notified!`, {
+          duration: 10000,
+        });
+      }
     } catch (err) {
-      console.error('Failed to send danger zone alert:', err);
-      alertSentRef.current = false;
+      console.error('Server geofence check failed:', err);
     }
-  }, [userId]);
+  }, []);
 
+  // Client-side geofence check (fast, immediate feedback)
+  const clientGeofenceCheck = useCallback((userLng: number, userLat: number) => {
+    const calculateDistance = (lng1: number, lat1: number, lng2: number, lat2: number) => {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    const pointInPolygon = (lat: number, lng: number, polygon: number[][]) => {
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i][1], yi = polygon[i][0];
+        const xj = polygon[j][1], yj = polygon[j][0];
+        const intersect = ((yi > lng) !== (yj > lng)) &&
+          (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    };
+
+    let inDanger = false;
+    let inSafe = false;
+
+    for (const zone of geofenceZones) {
+      let isInside = false;
+
+      if (zone.geometry_type === 'circle' && zone.center_lat && zone.center_lng && zone.radius_meters) {
+        const dist = calculateDistance(userLng, userLat, Number(zone.center_lng), Number(zone.center_lat));
+        isInside = dist <= Number(zone.radius_meters);
+      } else if (zone.geometry_type === 'polygon' && zone.polygon_coords) {
+        isInside = pointInPolygon(userLat, userLng, zone.polygon_coords);
+      }
+
+      if (zone.zone_type === 'safe' && isInside) inSafe = true;
+      if (isInside && zone.zone_type !== 'safe') {
+        inDanger = true;
+        if (!alertSentRef.current) {
+          alertSentRef.current = true;
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(`🚨 ${zone.zone_type === 'restricted' ? 'Restricted' : 'Danger'} Zone!`, {
+              body: `You entered ${zone.name}. ${zone.description || 'Stay alert!'}`,
+              icon: '/favicon.ico',
+            });
+          }
+          toast.error(`⚠️ You entered ${zone.name} (${zone.severity})`, { duration: 8000 });
+          // Trigger server-side validation
+          serverGeofenceCheck(userLat, userLng);
+        }
+      }
+    }
+
+    if (!inDanger && !inSafe && geofenceZones.some(z => z.zone_type === 'safe')) {
+      if (!alertSentRef.current) {
+        alertSentRef.current = true;
+        toast.warning('⚠️ You left the safe zone perimeter', { duration: 5000 });
+        serverGeofenceCheck(userLat, userLng);
+      }
+    }
+
+    if (!inDanger && inSafe) {
+      alertSentRef.current = false; // Reset when back in safe zone
+    }
+  }, [geofenceZones, serverGeofenceCheck]);
+
+  // Initialize map
   useEffect(() => {
     if (!mapContainer.current || !location || !mapboxToken) return;
 
     mapboxgl.accessToken = mapboxToken;
-    
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
@@ -121,239 +202,152 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
       zoom: 13,
     });
 
-    map.current.addControl(
-      new mapboxgl.NavigationControl(),
-      'top-right'
-    );
+    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    // Add user location marker
     marker.current = new mapboxgl.Marker({ color: '#3b82f6' })
       .setLngLat([location.lng, location.lat])
       .addTo(map.current);
 
-    // Define safe perimeter around user's starting location (1km radius)
-    const safePerimeter = {
-      centerLng: location.lng,
-      centerLat: location.lat,
-      radius: 1000, // 1km safe zone
-      name: 'Safe Tourism Area'
-    };
-
-    // Define specific danger zones
-    const dangerZones = [
-      { lng: location.lng + 0.012, lat: location.lat + 0.008, name: 'High Crime Area', radius: 300 },
-      { lng: location.lng - 0.015, lat: location.lat + 0.01, name: 'Unsafe Zone', radius: 250 },
-      { lng: location.lng + 0.008, lat: location.lat - 0.012, name: 'Restricted Area', radius: 200 },
-    ];
-
-    // Function to calculate distance in meters
-    const calculateDistance = (lng1: number, lat1: number, lng2: number, lat2: number) => {
-      const R = 6371000; // Earth's radius in meters
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLng/2) * Math.sin(dLng/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
-    };
-
-    // Function to check geofencing and send alerts
-    const checkGeofencing = (userLng: number, userLat: number) => {
-      // Check if user is outside safe perimeter
-      const distanceFromCenter = calculateDistance(
-        safePerimeter.centerLng, safePerimeter.centerLat,
-        userLng, userLat
-      );
-      
-      if (distanceFromCenter > safePerimeter.radius) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('⚠️ Outside Safe Zone!', {
-            body: `You have left the ${safePerimeter.name}. Please return to the safe area!`,
-            icon: '/favicon.ico',
-          });
-        }
-        // Send auto alert when leaving safe zone
-        sendDangerZoneAlert('Outside Safe Perimeter', userLat, userLng);
-      }
-
-      // Check if user entered specific danger zones
-      dangerZones.forEach(zone => {
-        const distance = calculateDistance(zone.lng, zone.lat, userLng, userLat);
-        
-        if (distance <= zone.radius) {
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('🚨 Danger Zone Alert!', {
-              body: `You are entering ${zone.name}. Please be extremely cautious!`,
-              icon: '/favicon.ico',
-            });
-          }
-          // Send auto alert to authorities
-          sendDangerZoneAlert(zone.name, userLat, userLng);
-        }
-      });
-    };
-
-    // Request notification permission
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
 
-    // Add geofencing zones
+    const createCircle = (centerLng: number, centerLat: number, radiusKm: number, points = 64) => {
+      const coords = [];
+      for (let i = 0; i < points; i++) {
+        const angle = (i / points) * 2 * Math.PI;
+        const dx = radiusKm * Math.cos(angle);
+        const dy = radiusKm * Math.sin(angle);
+        const lat = centerLat + (dy / 111.32);
+        const lng = centerLng + (dx / (111.32 * Math.cos(centerLat * Math.PI / 180)));
+        coords.push([lng, lat]);
+      }
+      coords.push(coords[0]);
+      return coords;
+    };
+
     map.current.on('load', () => {
       if (!map.current) return;
 
-      // Create circle GeoJSON for safe perimeter
-      const createCircle = (centerLng: number, centerLat: number, radiusKm: number, points = 64) => {
-        const coords = [];
-        for (let i = 0; i < points; i++) {
-          const angle = (i / points) * 2 * Math.PI;
-          const dx = radiusKm * Math.cos(angle);
-          const dy = radiusKm * Math.sin(angle);
-          const lat = centerLat + (dy / 111.32);
-          const lng = centerLng + (dx / (111.32 * Math.cos(centerLat * Math.PI / 180)));
-          coords.push([lng, lat]);
+      // Render all geofence zones from database
+      geofenceZones.forEach((zone, index) => {
+        let coordinates: number[][] = [];
+
+        if (zone.geometry_type === 'circle' && zone.center_lat && zone.center_lng && zone.radius_meters) {
+          coordinates = createCircle(Number(zone.center_lng), Number(zone.center_lat), Number(zone.radius_meters) / 1000);
+        } else if (zone.geometry_type === 'polygon' && zone.polygon_coords) {
+          coordinates = zone.polygon_coords;
+          if (coordinates.length > 0 && (coordinates[0][0] !== coordinates[coordinates.length - 1][0] || coordinates[0][1] !== coordinates[coordinates.length - 1][1])) {
+            coordinates.push(coordinates[0]);
+          }
         }
-        coords.push(coords[0]); // Close the polygon
-        return coords;
-      };
 
-      // Add safe perimeter (green circle)
-      map.current!.addSource('safe-perimeter', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: { name: safePerimeter.name },
-          geometry: {
-            type: 'Polygon',
-            coordinates: [createCircle(safePerimeter.centerLng, safePerimeter.centerLat, safePerimeter.radius / 1000)]
-          },
-        },
-      });
+        if (coordinates.length === 0) return;
 
-      map.current!.addLayer({
-        id: 'safe-perimeter-fill',
-        type: 'fill',
-        source: 'safe-perimeter',
-        paint: {
-          'fill-color': '#10b981',
-          'fill-opacity': 0.1,
-        },
-      });
+        const colors: Record<string, { fill: string; line: string }> = {
+          safe: { fill: '#10b981', line: '#10b981' },
+          danger: { fill: '#ef4444', line: '#ef4444' },
+          restricted: { fill: '#f59e0b', line: '#f59e0b' },
+        };
+        const color = colors[zone.zone_type] || colors.danger;
 
-      map.current!.addLayer({
-        id: 'safe-perimeter-line',
-        type: 'line',
-        source: 'safe-perimeter',
-        paint: {
-          'line-color': '#10b981',
-          'line-width': 3,
-          'line-dasharray': [2, 2],
-        },
-      });
+        const sourceId = `geofence-zone-${index}`;
 
-      // Add danger zones
-      dangerZones.forEach((zone, index) => {
-        map.current!.addSource(`danger-zone-${index}`, {
+        map.current!.addSource(sourceId, {
           type: 'geojson',
           data: {
             type: 'Feature',
             properties: { name: zone.name },
-            geometry: {
-              type: 'Polygon',
-              coordinates: [createCircle(zone.lng, zone.lat, zone.radius / 1000)]
-            },
+            geometry: { type: 'Polygon', coordinates: [coordinates] },
           },
         });
 
         map.current!.addLayer({
-          id: `danger-zone-fill-${index}`,
+          id: `${sourceId}-fill`,
           type: 'fill',
-          source: `danger-zone-${index}`,
+          source: sourceId,
           paint: {
-            'fill-color': '#ef4444',
-            'fill-opacity': 0.3,
+            'fill-color': color.fill,
+            'fill-opacity': zone.zone_type === 'safe' ? 0.08 : 0.25,
           },
         });
 
         map.current!.addLayer({
-          id: `danger-zone-line-${index}`,
+          id: `${sourceId}-line`,
           type: 'line',
-          source: `danger-zone-${index}`,
+          source: sourceId,
           paint: {
-            'line-color': '#ef4444',
-            'line-width': 2,
+            'line-color': color.line,
+            'line-width': zone.zone_type === 'safe' ? 3 : 2,
+            'line-dasharray': zone.zone_type === 'safe' ? [2, 2] : [1],
           },
         });
 
-        // Add danger zone label
         map.current!.addLayer({
-          id: `danger-zone-label-${index}`,
+          id: `${sourceId}-label`,
           type: 'symbol',
-          source: `danger-zone-${index}`,
+          source: sourceId,
           layout: {
-            'text-field': zone.name,
+            'text-field': `${zone.zone_type === 'restricted' ? '🚫 ' : zone.zone_type === 'danger' ? '⚠️ ' : '✅ '}${zone.name}`,
             'text-size': 12,
             'text-anchor': 'center',
           },
           paint: {
-            'text-color': '#dc2626',
+            'text-color': color.line,
             'text-halo-color': '#ffffff',
             'text-halo-width': 2,
           },
         });
+
+        // Popup on click
+        map.current!.on('click', `${sourceId}-fill`, () => {
+          const popup = new mapboxgl.Popup({ closeOnClick: true })
+            .setLngLat([Number(zone.center_lng || 0), Number(zone.center_lat || 0)])
+            .setHTML(`
+              <div style="padding:8px">
+                <strong>${zone.name}</strong><br/>
+                <span style="color:${color.line};text-transform:capitalize">${zone.zone_type} • ${zone.severity}</span><br/>
+                <small>${zone.description || ''}</small>
+              </div>
+            `)
+            .addTo(map.current!);
+        });
       });
 
-      // Initial geofencing check
-      checkGeofencing(location.lng, location.lat);
+      // Run initial client-side geofence check
+      clientGeofenceCheck(location.lng, location.lat);
+      // Also run a server-side check on load
+      serverGeofenceCheck(location.lat, location.lng);
 
-      // Add route if destination exists
+      // Add route if destination
       if (destinationCoords && location) {
-        // Add destination marker
         destinationMarker.current = new mapboxgl.Marker({ color: '#ef4444' })
           .setLngLat([destinationCoords.lng, destinationCoords.lat])
           .setPopup(new mapboxgl.Popup().setHTML(`<strong>${destination}</strong>`))
           .addTo(map.current!);
 
-        // Fetch route from Mapbox Directions API
         fetch(
           `https://api.mapbox.com/directions/v5/mapbox/driving/${location.lng},${location.lat};${destinationCoords.lng},${destinationCoords.lat}?geometries=geojson&access_token=${mapboxToken}`
         )
           .then(res => res.json())
           .then(data => {
-            if (data.routes && data.routes.length > 0) {
+            if (data.routes?.length > 0) {
               const route = data.routes[0].geometry;
-
               map.current!.addSource('route', {
                 type: 'geojson',
-                data: {
-                  type: 'Feature',
-                  properties: {},
-                  geometry: route
-                }
+                data: { type: 'Feature', properties: {}, geometry: route }
               });
-
               map.current!.addLayer({
                 id: 'route',
                 type: 'line',
                 source: 'route',
-                layout: {
-                  'line-join': 'round',
-                  'line-cap': 'round'
-                },
-                paint: {
-                  'line-color': '#3b82f6',
-                  'line-width': 5,
-                  'line-opacity': 0.8
-                }
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: { 'line-color': '#3b82f6', 'line-width': 5, 'line-opacity': 0.8 }
               });
-
-              // Fit bounds to show entire route
               const coordinates = route.coordinates;
               const bounds = coordinates.reduce((bounds: mapboxgl.LngLatBounds, coord: [number, number]) => {
                 return bounds.extend(coord);
               }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
-
               map.current!.fitBounds(bounds, { padding: 50 });
             }
           })
@@ -365,15 +359,17 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
       destinationMarker.current?.remove();
       map.current?.remove();
     };
-  }, [location, mapboxToken, destinationCoords, destination, sendDangerZoneAlert]);
+  }, [location, mapboxToken, destinationCoords, destination, geofenceZones, clientGeofenceCheck, serverGeofenceCheck]);
 
-  // Update marker position when location changes and check geofencing
+  // Update marker on location change
   useEffect(() => {
     if (location && marker.current) {
       marker.current.setLngLat([location.lng, location.lat]);
       map.current?.flyTo({ center: [location.lng, location.lat], zoom: 13 });
+      // Re-check geofences on position update
+      clientGeofenceCheck(location.lng, location.lat);
     }
-  }, [location]);
+  }, [location, clientGeofenceCheck]);
 
   if (error) {
     return (
@@ -398,18 +394,24 @@ const MapComponent = ({ location, destination }: MapComponentProps) => {
         <div className="flex flex-col gap-2 text-xs">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full border-2 border-dashed border-green-500 bg-green-500/20" />
-            <span>Safe Perimeter (1km)</span>
+            <span>Safe Zone</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <span>Danger Zone</span>
           </div>
           <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-amber-500" />
+            <span>Restricted Zone</span>
+          </div>
+          <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-500" />
             <span>Your Location</span>
           </div>
         </div>
-        <p className="text-muted-foreground text-[10px] mt-2">🚨 Auto-alerts authorities if you enter danger zone</p>
+        <p className="text-muted-foreground text-[10px] mt-2">
+          🚨 Geofencing: Client + Server validated • Auto-alerts authorities
+        </p>
       </div>
     </div>
   );
