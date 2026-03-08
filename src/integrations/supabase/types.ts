@@ -128,6 +128,57 @@ export type Database = {
         }
         Relationships: []
       }
+      geofence_zones: {
+        Row: {
+          center_lat: number | null
+          center_lng: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          geometry_type: string
+          id: string
+          is_active: boolean
+          name: string
+          polygon_coords: Json | null
+          radius_meters: number | null
+          severity: string
+          updated_at: string
+          zone_type: string
+        }
+        Insert: {
+          center_lat?: number | null
+          center_lng?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          geometry_type?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          polygon_coords?: Json | null
+          radius_meters?: number | null
+          severity?: string
+          updated_at?: string
+          zone_type?: string
+        }
+        Update: {
+          center_lat?: number | null
+          center_lng?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          geometry_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          polygon_coords?: Json | null
+          radius_meters?: number | null
+          severity?: string
+          updated_at?: string
+          zone_type?: string
+        }
+        Relationships: []
+      }
       lost_items: {
         Row: {
           created_at: string | null
