@@ -408,7 +408,7 @@ const AuthorityPortal = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="alerts" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
             <TabsTrigger value="alerts" className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
               Emergency Alerts ({alerts.length})
